@@ -1,12 +1,10 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.signal import convolve2d
-import preprocess_image as pci
-from kernel import gaussian_kernel
-from scipy.linalg import circulant
 from skimage import util
-from PIL import Image
+import preprocess_image as pci
+import matplotlib.pyplot as plt
+from kernel import gaussian_kernel
+from scipy.signal import convolve2d
+
 
 def blur_image(path_to_image, 
                show_before=False, 

@@ -1,5 +1,4 @@
 pillow==11.1.0
-jax==0.5.3
 scikit-image==0.25.2
 opencv-python==4.11.0.86
 matplotlib==3.10.1

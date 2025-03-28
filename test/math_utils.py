@@ -1,48 +1,55 @@
-import jax.numpy as jnp
-from jax import grad
+import numpy as np
 
 
-    
-def l1norm(x):
+def l1prox(t, y, b):
     """
-    Computes l1 norm of a numpy array
+    Computes the proximal operator of the t-scaled L1 distance t||y - b|| 
+    where b is const. and y is free using the known soft-thresholding 
+    formula (without translation -b) and the property of translation
+    in 'Proximal Splitting Methods in Signal Processing', Combettes et al.
+    
 
     Args:
-        x: numpy array
+        t (float): step-size
+        y (ndarray): typically k*x for some convolution kernel k
+        b (ndarray): blurred and noised image (typically k*x + n for some additive noise n)
 
-    Returns: 
-        l1 norm of x
+    Returns:
+        proximal operator of the L1 distance t||y - b|| (ndarray).
     """
-    return jnp.linalg.norm(x, ord=1)
-
-
-def l1grad(x):
-    return grad(l1norm)(x)
-
-
-def l1prox(x, t):
-    """
-    """
-    return jnp.array([
-        x_i - t if x_i > t \
-            else 0 if -t < x < t \
-                else x_i + t \
-                    for x_i in x
+    return np.array([
+                y[i] + t if y[i] - b[i] < -t 
+        else    y[i] - t if y[i] - b[i] > t 
+        else    b[i]
+        for i in range(len(y))
     ])
 
 
-def l2prox(x, t, y1, b):
-    return (
-        (y1 + 2*t*b) / (1 + 2*t)
-    )
+def l2prox(t, y, b):
+    """
+    Computes the proximal operator of the t-scaled squared L2 distance t||y - b||^2 
+    where b is const. and y is free.
+    https://odlgroup.github.io/odl/generated/odl.solvers.nonsmooth.proximal_operators.proximal_l2_squared.html#odl.solvers.nonsmooth.proximal_operators.proximal_l2_squared
+
+    Args:
+        t (float): step-size
+        y (ndarray): typically k*x for some convolution kernel k
+        b (ndarray): blurred and noised image (typically k*x + n for some additive noise n)
+
+    Returns:
+        proximal operator of the t-scaled squared L2 distance t||y - b||^2 (ndarray).
+    
+    """
+    return (y + 2*t*b) / (1 + 2*t)
 
 
 if __name__ == "__main__":
-    x = jnp.array([-2.0, 1.0, 3.0])
-    my_norm = l1norm(x)
-    print(my_norm)
-
-
-    my_gradient = l1grad(x)
-    # 
-    print(my_gradient)
+    y = np.array([-2.0, 1.0, 3.0])
+    b = np.array([1.0, 5.0, 2.0])
+    t = 0.1
+    print(f"y := {y}")
+    print(f"b := {b}")
+    print(f"t := {t}")
+    print()
+    print(f"l1 prox: {l1prox(y=y, b=b, t=t)}")
+    print(f"l2 prox: {l2prox(y=y, b=b, t=t)}")

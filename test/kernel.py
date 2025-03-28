@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def gaussian_kernel(hsize=[15,15], sigma=1.0):
     """
     Creates a 2D Gaussian kernel similar to MATLAB's fspecial('gaussian', hsize, sigma).
@@ -21,6 +22,7 @@ def gaussian_kernel(hsize=[15,15], sigma=1.0):
     # applying gaussian blur to such matrix is returned (equivalent to the kernel)
     return cv2.GaussianBlur(base, ksize=(hsize[0], hsize[1]), sigmaX=sigma, sigmaY=sigma)
 
+
 def disk_kernel(r=8):
     """
     Creates a 2D disk kernel similar to MATLAB's fspecial('disk', radius).
@@ -37,6 +39,7 @@ def disk_kernel(r=8):
     h = cv2.circle(base, center=(r,r), radius=r, color=(1,), thickness=-1)
     # average to one and return
     return h/h.sum()
+
 
 def motion_kernel(len=9, theta=0):
     """

@@ -19,7 +19,7 @@ def blur_image(path_to_image,
     # Convert to grayscale and normalize
     gray_img = pci.rgb2gray(path_to_image=path_to_image) # PIL Image
     gray_img_np = pci.image_to_numpy(gray_img)
-    x = pci.box_prox(gray_img_np)
+    x = pci.normalize_image(gray_img_np)
 
     # blur step
     Kx = convolve2d(x, 
@@ -50,9 +50,10 @@ def blur_image(path_to_image,
     
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
-    path_to_image = os.path.join(cur_dir, 'testimages\\cameraman.jpg')
+    my_path = '../testimages/cameraman.jpg' # <-- MODIFY THIS AS NEEDED
+    path_to_image = os.path.join(cur_dir, my_path)
 
-    k = kernel.motion_kernel(len=3)
+    k = kernel.motion_kernel(len=15)
     b, x = blur_image(path_to_image=path_to_image,
                       show_before=True,
                       show_after=True,

@@ -1,4 +1,4 @@
-# Math563 – Final_Project
+# Math563 – Final Project
 
 Make sure the test images are in the root directory of this project.
 Might have to modify the file paths in the code accordingly.

@@ -2,14 +2,14 @@ import os
 from skimage import util
 import preprocess_image as pci
 import matplotlib.pyplot as plt
-from kernel import gaussian_kernel
+import kernel
 from scipy.signal import convolve2d
 
 
 def blur_image(path_to_image, 
                show_before=False, 
                show_after=False, 
-               kernel=gaussian_kernel([15, 15], 5),
+               kernel=kernel.gaussian_kernel([15, 15], 5),
                noise_mode="s&p",
                noise_density=0.1
                ):
@@ -50,13 +50,13 @@ def blur_image(path_to_image,
     
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
-    path_to_image = os.path.join(cur_dir, '../testimages/cameraman.jpg')
+    path_to_image = os.path.join(cur_dir, 'testimages\\cameraman.jpg')
 
+    k = kernel.motion_kernel(len=3)
     b, x = blur_image(path_to_image=path_to_image,
                       show_before=True,
-                      show_after=True
-                      )
-    k = gaussian_kernel([15, 15], 5)
+                      show_after=True,
+                      kernel=k)
 
     
     """

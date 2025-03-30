@@ -79,12 +79,8 @@ def iso_prox(t, g, w1, w2):
         proximal operator of tg||(w1, w2)||  (ndarray).
     """
     tg = t * g
-    stack = [] # used to cache (w1[i]^2 + w2[i]^2)^(1/2)
-
-    return np.column_stack([(
-                1 - (tg / stack.pop()) if (stack.append(np.sqrt(w1[i]**2 + w2[i]**2)) or stack)[-1] > tg
-        else    0
-        ) * np.array([w1[i], w2[i]])
+    return np.column_stack([
+        (1 - tg / max(np.sqrt(w1[i]**2 + w2[i]**2), tg)) * np.array([w1[i], w2[i]])
         for i in range(len(w1))
     ])
 

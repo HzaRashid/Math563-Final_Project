@@ -4,7 +4,7 @@
 %computes the numRow x numCol matrix of the eigenvalues for K and D1 and
 %D2; Here D1 = I oplus D1 in the paper and D2 = D1 oplus I.
 eigArry_K = eigValsForPeriodicConvOp(kernel, numRows, numCols);
-eigArry_D1 = eigValsForPeriodicConvOp([-1,1]', numRows, numCols);
+eigArry_D1 = eigValsForPeriodicConvOp([-1,1], numRows, numCols);
 eigArry_D2 = eigValsForPeriodicConvOp([-1,1], numRows, numCols);
 
 %computes numRow x numCol matrix of the eigenvalues for K^T and D1^T and

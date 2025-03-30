@@ -1,5 +1,5 @@
 import numpy as np
-import cv2
+import scipy.ndimage as ndi
 
 
 def periodic_conv_eigvals(kernel, image_shape):
@@ -18,7 +18,7 @@ def periodic_conv_eigvals(kernel, image_shape):
     """
     a = np.zeros(shape=image_shape)
     a[0, 0] = 1
-    Ra = cv2.filter2D(src=a, kernel=kernel, ddepth=-1, borderType=cv2.BORDER_WRAP)
+    Ra = ndi.correlate(input=a, weights=kernel, mode='wrap')
     return np.fft.fft2(a=Ra)
 
 
@@ -39,25 +39,62 @@ def fft_conv2d(eigvals, x):
     return np.fft.ifft2(eigvals * np.fft.fft2(x)) # (Hadamard product)
 
 
-def cat_mats(x, y):
-    return np.dstack([x, y])
+def cat_mats(mats):
+    """
+    Concatenates list of identically shaped matrices along a third dimension.
+    Throws error of the matrices do not have the same dimensions.
+    """
+    return np.dstack(mats)
 
 
-def apply_grad_conj(D, D1_evconj, D2_evconj):
-    return fft_conv2d(eigvals=D1_evconj, image=D[:, :, 0]) \
-        + fft_conv2d(eigvals=D2_evconj, image=D[:, :, 1])
+def apply_D(D1_eigvals, D2_eigvals, x):
+    """
+    Computes Dx if provided the eigenvalues of D1 and D2.
+    If you want to compute D^Tx, then pass the complex
+    conjugates of the eigenvalue arrays.
+    """
+    return cat_mats([fft_conv2d(eigvals=D1_eigvals, x=x), 
+                     fft_conv2d(eigvals=D2_eigvals, x=x)])
+
+
+def apply_A(kernel_eigvals, 
+            D1_eigvals, 
+            D2_eigvals,
+            x):
+    """
+    Computes Ax, where A is block matrix of three rows,
+    using the eigenvalues of each block.
+    If you want to compute A^Tx, then pass the complex
+    conjugates of the eigenvalue arrays.
+    """
+    Dx = apply_D(x=x, D1_eigvals=D1_eigvals, D2_eigvals=D2_eigvals)
+    D1x, D2x = Dx[:, :, 0], Dx[:, :, 1]
+    Kx = fft_conv2d(eigvals=kernel_eigvals, x=x)
+    return cat_mats([Kx, D1x, D2x])
+
+
+def apply_grad_conj(D1_evconj, D2_evconj, Dx):
+    """
+    Computes D^TDx, where Dx has aleady been computed for some x.
+    """
+    return fft_conv2d(eigvals=D1_evconj, x=Dx[:, :, 0]) \
+        + fft_conv2d(eigvals=D2_evconj, x=Dx[:, :, 1])
 
 
 def apply_composite_op(kernel_eigvals, 
-                       grad_stack, 
+                       Dx, 
                        grad1_evconj,
                        grad2_evconj,
                        kernel_conv_x,
                        x):
-    return x \
-        + fft_conv2d(eigvals=np.conjugate(kernel_eigvals), image=kernel_conv_x) \
-        + apply_grad_conj(D=grad_stack,  D1_evconj=grad1_evconj, D2_evconj=grad2_evconj)
     
+    """
+    Computes (I + K^TK + D^TD)x, where Dx is already known.
+    """
+    return x \
+        + fft_conv2d(eigvals=np.conjugate(kernel_eigvals), x=kernel_conv_x) \
+        + apply_grad_conj(D1_evconj=grad1_evconj, D2_evconj=grad2_evconj, Dx=Dx)
+
 
 def eigvals_mat(kernel_eigvals_conj, 
                 kernel_eigvals, 
@@ -67,7 +104,8 @@ def eigvals_mat(kernel_eigvals_conj,
                 grad2_eigvals, 
                 t):
     """
-    Computes the eigenvalues matrix for the composite operator.
+    Computes the eigenvalues matrix for the composite operator
+    I + t^2K^TK + t^2D^TD
     
     Args:
         kernel_eigvals_conj (np.ndarray):
@@ -96,6 +134,9 @@ def eigvals_mat(kernel_eigvals_conj,
 
 
 def fft_invert(x, eigvals_mat):
+    """
+    Computes A^(-1)x using fft and eigenvalues of some matrix A.
+    """
     return np.fft.ifft2(np.fft.fft2(x) / eigvals_mat)
 
 
@@ -104,4 +145,14 @@ if __name__ == "__main__":
     k = gaussian_kernel(hsize=[15, 15], sigma=1.0)
     out = periodic_conv_eigvals(kernel=k, image_shape=[128, 128])
 
-    print(out)
+    kernel_D1 = np.array([-1, 1])[:, None]
+    kernel_D2 = np.array([-1, 1])[None, :]
+
+    D1_eigvals = periodic_conv_eigvals(kernel=kernel_D1, image_shape=[128, 128])
+    D2_eigvals = periodic_conv_eigvals(kernel=kernel_D2, image_shape=[128, 128])
+    
+    rand_img = np.random.random((128, 128))
+
+    D = apply_D(D1_eigvals=D1_eigvals, D2_eigvals=D2_eigvals, x=rand_img)
+
+    print(D)

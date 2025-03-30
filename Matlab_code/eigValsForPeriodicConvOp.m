@@ -3,7 +3,7 @@ function [ eigValArry ] = eigValsForPeriodicConvOp( filter, numRows, numCols  )
 %(Note this is an array of eigenvalues because numCols can be larger than).
 %
 %   INPUT:      filter  = correlation kernel (e.g. for Gaussian
-%                       filter = fspecial('gaussian');
+%                       filter = fspecial('gaussian'));
 %               numRows = scalar; number of rows in the blurred image (b)
 %               numCols = scalar; number of columns in the blurred image
 %                       (b)

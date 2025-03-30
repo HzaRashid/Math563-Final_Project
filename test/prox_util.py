@@ -72,13 +72,14 @@ def iso_prox(t, g, w1, w2):
     Args:
         t (float): positive step-size
         g (float): positive const. ("gamma")
-        x (ndarray): vector
+        w1 (ndarray): vector
+        w2 (ndarray): vector
 
     Returns:
         proximal operator of tg||(w1, w2)||  (ndarray).
     """
     tg = t * g
-    stack = [] # the denominator 
+    stack = [] # used to cache (w1[i]^2 + w2[i]^2)^(1/2)
 
     return np.column_stack([(
                 1 - (tg / stack.pop()) if (stack.append(np.sqrt(w1[i]**2 + w2[i]**2)) or stack)[-1] > tg

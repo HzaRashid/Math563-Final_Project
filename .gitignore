@@ -1,5 +1,7 @@
 .venv/
 
+.env
+
 **/__pycache__/
 
 /project_template_2025

@@ -42,7 +42,7 @@ def fft_conv2d(eigvals, x):
 def cat_mats(mats):
     """
     Concatenates list of identically shaped matrices along a third dimension.
-    Throws error of the matrices do not have the same dimensions.
+    Throws error if the matrices do not have the same dimensions.
     """
     return np.dstack(mats)
 
@@ -154,5 +154,5 @@ if __name__ == "__main__":
     rand_img = np.random.random((128, 128))
 
     D = apply_D(D1_eigvals=D1_eigvals, D2_eigvals=D2_eigvals, x=rand_img)
-
+    
     print(D)

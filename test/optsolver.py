@@ -32,20 +32,31 @@ class solve():
     def applyA(self,x):
         '''
         Applies Ax
+
+        Args:
+            x (np.ndarray): x represented as an NxN matrix
         '''
         return matops.apply_A(self.eigvalK,self.eigvalD1,self.eigvalD2,x)
     
     def applyAT(self,y):
-        '''
+        """
         Applies A^Ty
-        '''
-        return matops.fft_conv2d(self.conjK,y) \
-            + matops.fft_conv2d(self.conjD1,y) \
-                + matops.fft_conv2d(self.conjD2,y)
+
+        Args:
+            y (np.ndarray): y represented as [y1,y2,y3] concatenated in a
+            third dimension, each yi represented as an NxN matrix
+        """
+        return matops.fft_conv2d(self.conjK,y[0]) \
+            + matops.fft_conv2d(self.conjD1,y[1]) \
+                + matops.fft_conv2d(self.conjD2,y[2])
     
     def applyBig(self,t,x):
         '''
-        Applies (I+A^TA)^(-1)(x)
+        Applies (I+tA^TA)^(-1)(x)
+
+        Args:
+            t (int): step size
+            x (np.ndarray): x represented as an NxN matrix
         '''
         eigvals = matops.eigvals_mat(self.conjK,self.eigvalK,self.conjD1,self.conjD1,
                                      self.conjD2,self.eigvalD2,t)
@@ -53,9 +64,16 @@ class solve():
     
     def applyBigT(self,t,y):
         '''
-        Applies (I+AA^T)^(-1)(y)
+        Applies (I+tAA^T)^(-1)(y)
+        Args:
+            t (int): step size
+            y (np.ndarray): y represented as [y1,y2,y3] concatenated in a
+            third dimension, each yi represented as an NxN matrix       
         '''
-        pass
+        # Compute (I+tAA^T)y
+        newy = y + t * self.applyA(self.applyAT(y))
+        # Compute (I+tAA^T)^(-1)y
+        return np.fft.ifft2(np.square(np.fft.fft2(y)) / newy)
 
     def DouglasRachfordPrimal(self):
         """

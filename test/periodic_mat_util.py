@@ -133,7 +133,7 @@ def eigvals_mat(kernel_eigvals_conj,
            + (t**2) * (grad2_eigvals_conj * grad2_eigvals)
 
 
-def fft_invert(x, eigvals_mat):
+def fft_invert(eigvals_mat, x):
     """
     Computes A^(-1)x using fft and eigenvalues of some matrix A.
     """

@@ -55,14 +55,25 @@ if __name__ == "__main__":
 
     k = kernel.motion_kernel(len=15)
     b, x = blur_image(path_to_image=path_to_image,
-                      show_before=True,
-                      show_after=True,
+                      show_before=False,
+                      show_after=False,
                       kernel=k)
 
     
     """
-    - algorithms are given: x=true_image, k=kernel, b=blurred_and_noised_image
+    - algorithms are given: k=kernel, b=blurred_and_noised_image
     - algorithms start by initializing Kx and Dx
-    - get Kx -> pass the kernel to scipy.signal.convolve2d
-    - get Dx -> use a python equivalent of their matlab code
     """
+
+    from optsolver import DouglasRachfordPrimal
+
+    solver = DouglasRachfordPrimal(
+        k=k,b=b, maxiter=10
+    )
+
+    result = solver.solve()
+
+    plt.figure("Image after blurring and noise")
+    plt.imshow(result, cmap='gray')
+    plt.axis('off')
+    plt.show()

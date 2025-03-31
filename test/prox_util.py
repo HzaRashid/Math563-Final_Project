@@ -16,12 +16,11 @@ def l1prox(t, y, b):
     Returns:
         proximal operator of the L1 distance t||y - b|| (ndarray).
     """
-    return np.array([
-                y[i] + t    if y[i] - b[i] < -t 
-        else    y[i] - t    if y[i] - b[i] > t 
-        else    b[i]
-        for i in range(len(y))
-    ])
+    diff = y - b
+    return  np.where(diff < -t, y + t,  # y_ij + t if y_ij - b_ij < -t 
+            np.where(diff >  t, y - t,  # y_ij - t if y_ij - b_ij > t
+                     b                  # b_ij, else
+                    ))
 
 
 def l2prox(t, y, b):
@@ -56,18 +55,16 @@ def box_prox(t, x):
         proximal operator of the t-scaled squared L2 distance t||y - b||^2 (ndarray).
     
     """
-    return np.array([
-                0       if x[i] < 0
-        else    x[i]    if 0 <= x[i] <= 1
-        else    1
-        for i in range(len(x))
-    ])
+    return  np.where(x < 0, 0,  # 0 if x_ij = 0
+            np.where(x > 1, 1,  # 1 if x_ij > 1
+                     x          # x_ij, else
+                     ))       
 
 
 def iso_prox(t, g, w1, w2):
     """
     Computes the proximal operator of the tg-scaled iso-norm tg||(w1, w2)||.
-    Note that it returns the resulting column vectors seperately.
+    Note that it returns the resulting column vectors seperately as rows.
     
     Args:
         t (float): positive step-size
@@ -79,10 +76,10 @@ def iso_prox(t, g, w1, w2):
         proximal operator of tg||(w1, w2)||  (ndarray).
     """
     tg = t * g
-    return np.column_stack([
-        (1 - tg / max(np.sqrt(w1[i]**2 + w2[i]**2), tg)) * np.array([w1[i], w2[i]])
-        for i in range(len(w1))
-    ])
+    # we can replace the condition with 
+    # a maximum resulting in the desired 0 elements
+    # according to the formula
+    return (1 - tg / np.maximum(np.sqrt(w1**2 + w2**2), tg)) * np.array([w1, w2])
 
 
 if __name__ == "__main__":
@@ -102,5 +99,7 @@ if __name__ == "__main__":
     y1 = np.array([0.0, 0.0, 5.0])
     y2 = np.array([0.0, 0.5, 0.0])
     g = 0.5
+    isoprox = iso_prox(t=t, g=g, w1=y1, w2=y2)
+    print(f"iso prox: {isoprox}")
 
-    print(f"iso prox: {iso_prox(t=t, g=g, w1=y1, w2=y2)}")
+    print(isoprox.shape)

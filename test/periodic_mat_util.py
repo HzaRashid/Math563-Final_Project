@@ -47,44 +47,54 @@ def cat_mats(mats):
     return np.dstack(mats)
 
 
-def apply_D(D1_eigvals, D2_eigvals, x):
+def apply_D(eigvals_D1, eigvals_D2, x):
     """
     Computes Dx if provided the eigenvalues of D1 and D2.
-    If you want to compute D^Tx, then pass the complex
-    conjugates of the eigenvalue arrays.
     """
-    return cat_mats([fft_conv2d(eigvals=D1_eigvals, x=x), 
-                     fft_conv2d(eigvals=D2_eigvals, x=x)])
+    return cat_mats([fft_conv2d(eigvals=eigvals_D1, x=x), 
+                     fft_conv2d(eigvals=eigvals_D2, x=x)])
 
 
 def apply_A(kernel_eigvals, 
-            D1_eigvals, 
-            D2_eigvals,
+            eigvals_D1, 
+            eigvals_D2,
             x):
     """
     Computes Ax, where A is block matrix of three rows,
     using the eigenvalues of each block.
-    If you want to compute A^Tx, then pass the complex
-    conjugates of the eigenvalue arrays.
     """
-    Dx = apply_D(x=x, D1_eigvals=D1_eigvals, D2_eigvals=D2_eigvals)
+    Dx = apply_D(x=x, eigvals_D1=eigvals_D1, eigvals_D2=eigvals_D2)
     D1x, D2x = Dx[:, :, 0], Dx[:, :, 1]
     Kx = fft_conv2d(eigvals=kernel_eigvals, x=x)
     return cat_mats([Kx, D1x, D2x])
 
 
-def apply_grad_conj(D1_evconj, D2_evconj, Dx):
+# we should make a general function for these conjugate handlers
+def apply_D_conj(conj_eigvals_D1, conj_eigvals_D2, Dx):
     """
     Computes D^TDx, where Dx has aleady been computed for some x.
     """
-    return fft_conv2d(eigvals=D1_evconj, x=Dx[:, :, 0]) \
-        + fft_conv2d(eigvals=D2_evconj, x=Dx[:, :, 1])
+    return fft_conv2d(eigvals=conj_eigvals_D1, x=Dx[:, :, 0]) \
+        + fft_conv2d(eigvals=conj_eigvals_D2, x=Dx[:, :, 1])
 
 
-def apply_composite_op(kernel_eigvals, 
+def apply_A_conj(eigval_conj_arr, y):
+    """
+    Applies A^Ty
+
+    Args:
+        eigval_conj_arr: array of the complex conjugate eigenvalue arrays of some matrix A.
+        y (np.ndarray): y represented as [y1,y2,y3] concatenated in a
+        third dimension, each yi represented as an NxN matrix
+    """
+
+    return sum(fft_conv2d(eigval_conj_arr[i], y[:,:,i]) for i in range(len(eigval_conj_arr)))
+
+
+def apply_composite_op(eigvals_K, 
                        Dx, 
-                       grad1_evconj,
-                       grad2_evconj,
+                       conj_eigvals_D1,
+                       conj_eigvals_D2,
                        kernel_conv_x,
                        x):
     
@@ -92,33 +102,33 @@ def apply_composite_op(kernel_eigvals,
     Computes (I + K^TK + D^TD)x, where Dx is already known.
     """
     return x \
-        + fft_conv2d(eigvals=np.conjugate(kernel_eigvals), x=kernel_conv_x) \
-        + apply_grad_conj(D1_evconj=grad1_evconj, D2_evconj=grad2_evconj, Dx=Dx)
+        + fft_conv2d(eigvals=np.conjugate(eigvals_K), x=kernel_conv_x) \
+        + apply_D_conj(conj_eigvals_D1=conj_eigvals_D1, conj_eigvals_D2=conj_eigvals_D2, Dx=Dx)
 
 
-def eigvals_mat(kernel_eigvals_conj, 
-                kernel_eigvals, 
-                grad1_eigvals_conj, 
-                grad1_eigvals, 
-                grad2_eigvals_conj, 
-                grad2_eigvals, 
+def eigvals_mat(conj_eigvals_K, 
+                eigvals_K, 
+                conj_eigvals_D1, 
+                eigvals_D1, 
+                conj_eigvals_D2, 
+                eigvals_D2, 
                 t):
     """
     Computes the eigenvalues matrix for the composite operator
     I + t^2K^TK + t^2D^TD
     
     Args:
-        kernel_eigvals_conj (np.ndarray):
+        conj_eigvals_K (np.ndarray):
             Conjugated eigenvalues of the kernel convolution operator.
-        kernel_eigvals (np.ndarray):
+        eigvals_K (np.ndarray):
             Eigenvalues of the kernel convolution operator.
-        grad1_eigvals_conj (np.ndarray):
+        conj_eigvals_D1 (np.ndarray):
             Conjugated eigenvalues of the first gradient (derivative) operator.
-        grad1_eigvals (np.ndarray):
+        eigvals_D1 (np.ndarray):
             Eigenvalues of the first gradient (derivative) operator.
-        grad2_eigvals_conj (np.ndarray):
+        conj_eigvals_D2 (np.ndarray):
             Conjugated eigenvalues of the second gradient (derivative) operator.
-        grad2_eigvals (np.ndarray):
+        eigvals_D2 (np.ndarray):
             Eigenvalues of the second gradient (derivative) operator.
         t (float):
             The step-size or scaling parameter for the operators.
@@ -127,10 +137,10 @@ def eigvals_mat(kernel_eigvals_conj,
         np.ndarray:
             The computed eigenvalues matrix.
     """
-    ones_mat = np.ones_like(kernel_eigvals)
-    return ones_mat + (t**2) * (kernel_eigvals_conj * kernel_eigvals) \
-           + (t**2) * (grad1_eigvals_conj * grad1_eigvals) \
-           + (t**2) * (grad2_eigvals_conj * grad2_eigvals)
+    ones_mat = np.ones_like(eigvals_K)
+    return ones_mat + (t**2) * (conj_eigvals_K * eigvals_K) \
+           + (t**2) * (conj_eigvals_D1 * eigvals_D1) \
+           + (t**2) * (conj_eigvals_D2 * eigvals_D2)
 
 
 def fft_invert(eigvals_mat, x):
@@ -153,6 +163,6 @@ if __name__ == "__main__":
     
     rand_img = np.random.random((128, 128))
 
-    D = apply_D(D1_eigvals=D1_eigvals, D2_eigvals=D2_eigvals, x=rand_img)
+    D = apply_D(eigvals_D1=D1_eigvals, eigvals_D2=D2_eigvals, x=rand_img)
     
     print(D)

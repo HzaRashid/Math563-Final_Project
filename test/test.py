@@ -55,25 +55,24 @@ if __name__ == "__main__":
 
     k = kernel.motion_kernel(len=15)
     b, x = blur_image(path_to_image=path_to_image,
-                      show_before=False,
-                      show_after=False,
+                      show_before=True,
+                      show_after=True,
                       kernel=k)
 
     
     """
-    - algorithms are given: k=kernel, b=blurred_and_noised_image
-    - algorithms start by initializing Kx and Dx
+    Sample test
     """
-
     from optsolver import DouglasRachfordPrimal
+    import numpy as np
 
-    solver = DouglasRachfordPrimal(
-        k=k,b=b, maxiter=10
-    )
+    drp_solver = DouglasRachfordPrimal(k=k, b=b, maxiter=500)
 
-    result = solver.solve()
+    result = drp_solver.solve()
 
-    plt.figure("Image after blurring and noise")
-    plt.imshow(result, cmap='gray')
+    print(result)
+
+    plt.figure("algo output")
+    plt.imshow(np.real(result), cmap='gray')
     plt.axis('off')
     plt.show()

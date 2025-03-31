@@ -41,13 +41,13 @@ def disk_kernel(r=8):
     return h/h.sum()
 
 
-def motion_kernel(len=9, theta=0):
+def motion_kernel(len=9, theta=0.0):
     """
-    Creates a 2D motion kernel similar to MATLAB's fspecial('motion', len, theta), but double the size.
+    Creates a 2D motion kernel similar to MATLAB's fspecial('motion', len, theta), but quadruple the size.
 
     Args:
-        len: Length of motion
-        theta: Angle of motion in degrees counterclockwise from horizontal pointing right 
+        len (int): Length of motion
+        theta (float): Angle of motion in degrees counterclockwise from horizontal pointing right 
 
     Returns:
         np.ndarray: A 2D motion kernel normalized so that its sum is 1.

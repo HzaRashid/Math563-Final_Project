@@ -2,32 +2,25 @@ import numpy as np
 import periodic_mat_util as matops
 import prox_util as proxops
 
+
 kernel_D1 = np.array([-1, 1])[:, None]
 kernel_D2 = np.array([-1, 1])[None, :]
 
-class solve():
-    def __init__(self,
-                 k,
-                 x,
-                 objective='l1',
-                 maxiter=500,
-                 relax=1.0,
-                 step_size=0.1,
-                 gamma=0.5
-                 ):
+class OptSolver():
+    def __init__(self, k, x, **kwargs):
         self.x = x
-        size = np.shape(x)
-        self.eigvalK = matops.periodic_conv_eigvals(k, size)
-        self.eigvalD1 = matops.periodic_conv_eigvals(kernel_D1, size)
-        self.eigvalD2 = matops.periodic_conv_eigvals(kernel_D2, size)
+        self.objective = kwargs.get('objective', 'l1')
+        self.maxiter = kwargs.get('maxiter', 500)
+        self.relax = kwargs.get('relax', 1.0)
+        self.step_size = kwargs.get('step_size', 0.1)
+        self.gamma = kwargs.get('gamma', 0.5)
+        self.eigvalK = matops.periodic_conv_eigvals(k, x.shape)
+        self.eigvalD1 = matops.periodic_conv_eigvals(kernel_D1, x.shape)
+        self.eigvalD2 = matops.periodic_conv_eigvals(kernel_D2, x.shape)
         self.conjK = np.conjugate(self.eigvalK)
         self.conjD1 = np.conjugate(self.eigvalD1)
         self.conjD2 = np.conjugate(self.eigvalD2)
-        self.objective = objective
-        self.maxiter = maxiter
-        self.relax = relax
-        self.step_size = step_size
-        self.gamma = gamma
+
 
     def applyA(self,x):
         '''
@@ -75,9 +68,20 @@ class solve():
         # Compute (I+tAA^T)^(-1)y
         return np.fft.ifft2(np.square(np.fft.fft2(y)) / newy)
 
-    def DouglasRachfordPrimal(self):
+
+class DouglasRachfordPrimal(OptSolver):
+    def __init__(self, k, x, **kwargs):
+        super().__init__(k, x, **kwargs)
+        self.foo = kwargs.get('foo', 'bar')
+
+    def solve(self):
         """
         f(x) = indicator of {x, a finite dimenional vector: 0 <= x_i <= 1 for all dimenions i}.
         g(y) = ||y1 − b||_l1 + gamma||(y2, y3)||_iso, (y1, (y2, y3)) = [K, D]z
         """
         pass
+
+
+if __name__ == "__main__":
+    # usage
+    solver = DouglasRachfordPrimal(k=np.array([1, 2, 3])[:, None], x=np.random.random((128, 128)), objective='l2', maxiter=1000)

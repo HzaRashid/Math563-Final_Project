@@ -3,6 +3,7 @@ from skimage import util
 import preprocess_image as pci
 import matplotlib.pyplot as plt
 import kernel
+import time
 from scipy.signal import convolve2d
 
 
@@ -50,7 +51,8 @@ def blur_image(path_to_image,
     
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
-    my_path = '../testimages/cameraman.jpg' # <-- MODIFY THIS AS NEEDED
+    my_path = '../testimages/cameraman.jpg'
+    # my_path = 'testimages\\cameraman.jpg' # <-- MODIFY THIS AS NEEDED
     path_to_image = os.path.join(cur_dir, my_path)
 
     k = kernel.motion_kernel(len=15)
@@ -66,13 +68,19 @@ if __name__ == "__main__":
     from optsolver import DouglasRachfordPrimal
     import numpy as np
 
-    drp_solver = DouglasRachfordPrimal(k=k, b=b, maxiter=500)
+    start = time.time()
+    drp_solver = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
 
-    result = drp_solver.solve()
-
-    print(result)
+    result, eps = drp_solver.solve()
+    end = time.time()
+    print("time: ", end-start)    
 
     plt.figure("algo output")
     plt.imshow(np.real(result), cmap='gray')
     plt.axis('off')
+    plt.show()
+    plt.figure("Error")
+    plt.xlabel("Iterations")
+    plt.ylabel("Error")
+    plt.loglog(eps)
     plt.show()

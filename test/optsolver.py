@@ -2,7 +2,6 @@ import numpy as np
 import periodic_mat_util as matops
 import prox_util as proxops
 
-
 prox_store = {
     'l1': proxops.l1prox,
     'l2': proxops.l2prox,
@@ -22,7 +21,8 @@ def build_eigval_store(key_kernel_dict, shape):
 class OptSolver():
     def __init__(self, k, b, **kwargs):
         self.b = b
-        self.proxdbl = prox_store.get(kwargs.get('deblurring_objective', 'l1'))
+        self.dbl = kwargs.get('deblurring_objective', 'l1')
+        self.proxdbl = prox_store.get(self.dbl)
         self.maxiter = kwargs.get('maxiter', 500)
         self.relax = kwargs.get('relax', 0.5)
         self.step_size = kwargs.get('step_size', 0.1)
@@ -106,13 +106,22 @@ class DouglasRachfordPrimal(OptSolver):
         g(y) = ||y1 − b||_l1 + gamma||(y2, y3)||_iso, (y1, (y2, y3)) = [K, D]z
         """
         b, z1, z2, t = self.b, self.z1, self.z2, self.step_size
-        for _ in range(self.maxiter):
+
+        eps = np.zeros(self.maxiter)
+        # Whether eps is computed using l1 or l2
+        err_ord = int(self.dbl[1])
+        
+        for i in range(self.maxiter):
             x, y = self.resolvent_A(z1, z2, b, t)
             u, v = self.resolvent_B(x, y, z1, z2)
             z1 = z1 + self.relax * (u - x)
             z2 = z2 + self.relax * (v - y)
 
-        return self.proxf(t=t, x=z1)
+            # For now this is just ||Kx-b||
+            # @TODO implement iso and add it here
+            Kx = matops.fft_conv2d(self.eigval['K'],x)
+            eps[i] = np.linalg.norm(Kx-b, ord=err_ord)
+        return self.proxf(t=t, x=z1), eps
 
     
     def resolvent_A(self, z1, z2, b, t):

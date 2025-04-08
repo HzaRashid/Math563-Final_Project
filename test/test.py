@@ -52,10 +52,10 @@ def blur_image(path_to_image,
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
     my_path = '../testimages/cameraman.jpg'
-    # my_path = 'testimages\\cameraman.jpg' # <-- MODIFY THIS AS NEEDED
+    # my_path = 'testimages\\dcytest.png' # <-- MODIFY THIS AS NEEDED
     path_to_image = os.path.join(cur_dir, my_path)
 
-    k = kernel.motion_kernel(len=15)
+    k = kernel.gaussian_kernel()
     b, x = blur_image(path_to_image=path_to_image,
                       show_before=True,
                       show_after=True,
@@ -65,27 +65,29 @@ if __name__ == "__main__":
     """
     Sample test
     """
-    from optsolver import DouglasRachfordPrimal, DouglasRachfordDual
+    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual
     import numpy as np
 
     def test_solver(solver):
+    # This wrapper shows: the image before blurring, the blurred image,
+    # the deblurred image, and a graph for the objective value
         start= time.time()
         res, eps = solver.solve(track_objective=True)
         end = time.time()
-        print("time primal: ", end-start)    
+        print("Time: ", end-start)
 
-        plt.figure("primal algo output")
+        plt.figure("Algo output")
         plt.imshow(np.real(res), cmap='gray')
         plt.axis('off')
         plt.show()
-        plt.figure("Error")
+        plt.figure("Objective value")
         plt.xlabel("Iterations")
         plt.ylabel("Error")
         plt.loglog(eps)
         plt.show()
 
-        print("primal eps:", eps)
-    dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
-    dr_dual = DouglasRachfordDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
-    test_solver(dr_primal)
+    # dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
+    # test_solver(dr_primal)
+
+    dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
     test_solver(dr_dual)

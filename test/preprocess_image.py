@@ -47,4 +47,6 @@ def rgb2gray(path_to_image):
     Returns:
         None
     """
-    return Image.open(fp=path_to_image).convert('L')
+    img = Image.open(fp=path_to_image).convert('L')
+    img = img.resize((256,256))
+    return img

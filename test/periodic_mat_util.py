@@ -164,9 +164,9 @@ def eigvals_mat(conj_eigvals_K: np.ndarray,
         np.ndarray: The computed eigenvalues matrix.
     """
     ones_mat = np.ones_like(eigvals_K)
-    return ones_mat + (t**2) * (conj_eigvals_K * eigvals_K) + \
-           (t**2) * (conj_eigvals_D1 * eigvals_D1) + \
-           (t**2) * (conj_eigvals_D2 * eigvals_D2)
+    return ones_mat + t * (conj_eigvals_K * eigvals_K) + \
+           t * (conj_eigvals_D1 * eigvals_D1) + \
+           t * (conj_eigvals_D2 * eigvals_D2)
 
 
 def fft_invert(eigvals_mat: np.ndarray, x: np.ndarray) -> np.ndarray:

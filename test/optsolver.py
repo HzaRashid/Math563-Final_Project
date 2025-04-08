@@ -15,7 +15,7 @@ kernel_D1 = np.array([-1, 1])[:, None]
 kernel_D2 = np.array([-1, 1])[None, :]
 
 class OptSolver:
-    def __init__(self, k, b, 
+    def __init__(self, k, b,
                  deblurring_objective='l1',
                  maxiter=500,
                  step_size=0.1,
@@ -48,23 +48,21 @@ class OptSolver:
                              'D2': kernel_D2}, 
             shape=b.shape
             )
-        self.conj_eigval = {key: np.conjugate(val) for key, val in self.eigval.items()}
 
         self.err_ord = {
             'l1': 1,
             'l2': 2
             }.get(deblurring_objective, 'l1')
         
-        self.util = OptUtil(eigval=self.eigval, conj_eigval=self.conj_eigval)
+        self.util = OptUtil(eigval=self.eigval,t=step_size)
 
 
 class DouglasRachfordPrimal(OptSolver):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, k, b, **kwargs):
+        super().__init__(k, b, **kwargs)
         # cache expensive (static) operations
         self.z1 = mat.fft_conv2d(eigvals=self.eigval['K'], x=self.b)
         self.z2 = self.util.applyA(self.b)
-        self.eigvals_mat = self.util.apply_eigvals_mat(t=1.0)
         self.proxf = prox_store.get("box")
         self.proxg2 = prox_store.get("iso") # g2(y2, y3) = gamma||(y2, y3)||_iso
 
@@ -83,8 +81,6 @@ class DouglasRachfordPrimal(OptSolver):
             z2 = z2 + self.relax * (v - y)
 
             if track_objective:
-                # For now this is just ||Kx-b||
-                # @TODO implement iso and add it here
                 eps.append(self.util.get_objective(x=x, b=b, ord=self.err_ord))
 
         return self.proxf(t=t, x=z1), eps or [self.util.get_objective(x=x, b=self.b, ord=self.err_ord)]
@@ -104,23 +100,21 @@ class DouglasRachfordPrimal(OptSolver):
 
     def resolvent_B(self, x, y, z1, z2):
         # (I + A^TA)(-1)(2x_k − z1_(k-1)+ A^T(2y_k − z2_(k-1)))
-        u = mat.fft_invert(eigvals_mat=self.eigvals_mat, 
-                              x=2 * x - z1 + self.util.applyAT(2 * y - z2))
+        u = self.util.applyBig1(x=2 * x - z1 + self.util.applyAT(2 * y - z2))
         return (u, self.util.applyA(u))
 
 
-class DouglasRachfordDual(OptSolver):
+class DouglasRachfordPrimalDual(OptSolver):
     def __init__(self, k, b, **kwargs):
         super().__init__(k, b, **kwargs)
         # cache expensive (static) operations
-        self.eigvalmat_t = self.util.apply_eigvals_mat(self.step_size)
         self.p = np.zeros_like(self.b)
         self.q = self.util.applyA(np.zeros_like(self.b))
         self.t, self.tsq, self.tre = self.step_size, self.step_size**2, 1/self.step_size
         
     def solve(self, track_objective=False):
         # initialization
-        t, tsq, tre = self.step_size, self.step_size**2, 1/self.step_size
+        t = self.step_size
         rho = self.relax
         pk, qk = self.p, self.q
         eps = []
@@ -147,16 +141,14 @@ class DouglasRachfordDual(OptSolver):
         return (self.prox_box(t, pk), (qk - t * z))
     
     def resolvantB(self, x, z, pk, qk):
-        temp_zq = 2 * z - qk
+
         temp_xp = 2 * x - pk
-        return (
-            mat.fft_invert(self.eigvalmat_t, temp_xp - self.t * self.util.applyAT(temp_zq)),
-            (temp_zq 
-                  + self.t * self.util.applyA(mat.fft_invert(self.eigvalmat_t, 
-                                                        temp_xp)) 
-                  - self.tsq * self.util.applyA(mat.fft_invert(self.eigvalmat_t, 
-                                                          self.util.applyAT(temp_zq))))
-        )
+        temp_zq = 2 * z - qk
+        # (I+tA^TA)^(-1)(xq-tA^T(zq))
+        temp_combined = self.util.applyBig(temp_xp - self.t * self.util.applyAT(temp_zq))
+        # [0,zq] + [I,tA] * tempc
+        return (temp_combined,
+            (temp_zq + self.t * self.util.applyA(temp_combined)))
     
 
 

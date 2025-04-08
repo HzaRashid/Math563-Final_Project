@@ -2,9 +2,26 @@ import periodic_mat_util as mat
 import numpy as np
 
 class OptUtil:
-    def __init__(self, eigval, conj_eigval):
+    def __init__(self, eigval, t):
+        # Eigenvalue for K,D1,D2
         self.eigval = eigval
-        self.conj_eigval = conj_eigval
+        # Eigenvalue for K^T,D1^T,D2^T
+        self.conj_eigval = {key: np.conjugate(val) for key, val in self.eigval.items()}
+        # Eigenvalue for (I+tA^TA)
+        self.big_eigval1 = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
+                                  eigvals_K=self.eigval['K'], 
+                                  conj_eigvals_D1=self.conj_eigval['D1'], 
+                                  eigvals_D1=self.eigval['D1'], 
+                                  conj_eigvals_D2=self.conj_eigval['D2'], 
+                                  eigvals_D2=self.eigval['D2'],
+                                  t=1)
+        self.big_eigval = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
+                                  eigvals_K=self.eigval['K'], 
+                                  conj_eigvals_D1=self.conj_eigval['D1'], 
+                                  eigvals_D1=self.eigval['D1'], 
+                                  conj_eigvals_D2=self.conj_eigval['D2'], 
+                                  eigvals_D2=self.eigval['D2'],
+                                  t=t)
         pass
 
     def applyA(self,x):
@@ -32,7 +49,17 @@ class OptUtil:
                                                     self.conj_eigval['D2']
                                                     ], y=y)
     
-    def applyBig(self,t,x):
+    def applyBig1(self,x):
+        '''
+        Applies (I+A^TA)^(-1)(x)
+
+        Args:
+            t (int): step size
+            x (np.ndarray): x represented as an NxN matrix
+        '''
+        return mat.fft_invert(self.big_eigval1,x)
+    
+    def applyBig(self,x):
         '''
         Applies (I+tA^TA)^(-1)(x)
 
@@ -40,8 +67,7 @@ class OptUtil:
             t (int): step size
             x (np.ndarray): x represented as an NxN matrix
         '''
-        eigvals = self.apply_eigvals_mat(t)
-        return mat.fft_invert(eigvals,x)
+        return mat.fft_invert(self.big_eigval,x)   
     
     def applyBigT(self,t,y):
         '''
@@ -79,6 +105,13 @@ class OptUtil:
         return y - t * prox_op(y / t)
     
     def get_objective(self, x, b, ord):
+       """
+       Returns the objective value
+       Args:
+            x: current image
+            b: blurred image
+            ord: 1 or 2-norm
+       """
        return np.linalg.norm(
              x=mat.fft_conv2d(self.eigval['K'], x) - b, 
              ord=ord

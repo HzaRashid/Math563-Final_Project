@@ -156,7 +156,7 @@ class ADMM(OptSolver):
     def __init__(self, k, b, **kwargs):
         super().__init__(k, b, **kwargs)
         
-    def solve(self):
+    def solve(self, track_objective=False):
         t = self.step_size
         z = np.zeros_like(self.b)
         u = np.zeros_like(self.b)
@@ -179,7 +179,7 @@ class ChambollePock(OptSolver):
     def __init__(self, k, b, step_size2, **kwargs):
         super().__init__(k, b, **kwargs)
         self.step_size2 = step_size2
-    def solve(self):
+    def solve(self, track_objective=False):
         tau = self.step_size
         sigma = self.step_size2
         x = np.zeros_like(self.b)

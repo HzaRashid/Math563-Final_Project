@@ -22,7 +22,7 @@ class OptUtil:
                                   conj_eigvals_D2=self.conj_eigval['D2'], 
                                   eigvals_D2=self.eigval['D2'],
                                   t=t)
-        pass
+        
 
     def applyA(self,x):
         '''

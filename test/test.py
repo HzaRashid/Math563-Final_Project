@@ -65,22 +65,27 @@ if __name__ == "__main__":
     """
     Sample test
     """
-    from optsolver import DouglasRachfordPrimal
+    from optsolver import DouglasRachfordPrimal, DouglasRachfordDual
     import numpy as np
 
-    start = time.time()
-    drp_solver = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
+    def test_solver(solver):
+        start= time.time()
+        res, eps = solver.solve(track_objective=True)
+        end = time.time()
+        print("time primal: ", end-start)    
 
-    result, eps = drp_solver.solve()
-    end = time.time()
-    print("time: ", end-start)    
+        plt.figure("primal algo output")
+        plt.imshow(np.real(res), cmap='gray')
+        plt.axis('off')
+        plt.show()
+        plt.figure("Error")
+        plt.xlabel("Iterations")
+        plt.ylabel("Error")
+        plt.loglog(eps)
+        plt.show()
 
-    plt.figure("algo output")
-    plt.imshow(np.real(result), cmap='gray')
-    plt.axis('off')
-    plt.show()
-    plt.figure("Error")
-    plt.xlabel("Iterations")
-    plt.ylabel("Error")
-    plt.loglog(eps)
-    plt.show()
+        print("primal eps:", eps)
+    dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
+    dr_dual = DouglasRachfordDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
+    test_solver(dr_primal)
+    test_solver(dr_dual)

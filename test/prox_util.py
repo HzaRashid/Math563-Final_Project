@@ -10,11 +10,11 @@ def l1prox(t, y, b):
     
     Args:
         t (float): positive step-size
-        y (ndarray): typically k*x for some convolution kernel k and input x
-        b (ndarray): blurred and noised image (typically k*x + n for some additive noise n)
+        y (np.ndarray): typically k*x for some convolution kernel k and input x
+        b (np.ndarray): blurred and noised image (typically k*x + n for some additive noise n)
 
     Returns:
-        proximal operator of the L1 distance t||y - b|| (ndarray).
+        proximal operator of the L1 distance t||y - b|| (np.ndarray).
     """
     diff = y - b
     return  np.where(diff < -t, y + t,  # y_ij + t if y_ij - b_ij < -t 
@@ -31,11 +31,11 @@ def l2prox(t, y, b):
 
     Args:
         t (float): positive step-size
-        y (ndarray): typically k*x for some convolution kernel k and input x
-        b (ndarray): blurred and noised image (typically k*x + n for some additive noise n)
+        y (np.ndarray): typically k*x for some convolution kernel k and input x
+        b (np.ndarray): blurred and noised image (typically k*x + n for some additive noise n)
 
     Returns:
-        proximal operator of the t-scaled squared L2 distance t||y - b||^2 (ndarray).
+        proximal operator of the t-scaled squared L2 distance t||y - b||^2 (np.ndarray).
     
     """
     return (y + 2*t*b) / (1 + 2*t)
@@ -49,10 +49,10 @@ def box_prox(t, x):
 
     Args:
         t (float): positive step-size
-        x (ndarray): vector
+        x (np.ndarray): vector
 
     Returns:
-        proximal operator of the t-scaled squared L2 distance t||y - b||^2 (ndarray).
+        proximal operator of the t-scaled squared L2 distance t||y - b||^2 (np.ndarray).
     
     """
     return  np.where(x < 0, 0,  # 0 if x_ij = 0
@@ -69,11 +69,11 @@ def iso_prox(t, g, w1, w2):
     Args:
         t (float): positive step-size
         g (float): positive const. ("gamma")
-        w1 (ndarray): vector
-        w2 (ndarray): vector
+        w1 (np.ndarray): vector
+        w2 (np.ndarray): vector
 
     Returns:
-        proximal operator of tg||(w1, w2)||  (ndarray).
+        proximal operator of tg||(w1, w2)||  (np.ndarray).
     """
     tg = t * g
     # we can replace the condition with 

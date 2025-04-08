@@ -1,20 +1,17 @@
 import numpy as np
 import scipy.ndimage as ndi
+from typing import Sequence, List
 
-
-def periodic_conv_eigvals(kernel, image_shape):
+def periodic_conv_eigvals(kernel: np.ndarray, image_shape: Sequence[int]) -> np.ndarray:
     """
     Computes the eigenvalues of the 2D DFT of the convolution kernel.
 
     Args:
-        kernel : np.ndarray 
-        Correlation kernel (e.g. for Gaussian)
-        image_shape: list[int]
-        typically 2D, with image_shape[0]==num_rows, image_shape[1]=num_cols
+        kernel (np.ndarray): Correlation kernel (e.g. for Gaussian).
+        image_shape (Sequence[int]): Typically 2D, image_shape[0] is the number of rows, image_shape[1] is the number of columns.
 
     Returns:
-        matrix (same shape as image) containing the
-        eigenvalues of the convolution kernel (complex ndarray).
+        np.ndarray: A complex ndarray containing the eigenvalues of the convolution kernel.
     """
     a = np.zeros(shape=image_shape)
     a[0, 0] = 1
@@ -22,130 +19,166 @@ def periodic_conv_eigvals(kernel, image_shape):
     return np.fft.fft2(a=Ra)
 
 
-def fft_conv2d(eigvals, x):
+def fft_conv2d(eigvals: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
-    For a given "unblurred" image x and the eigenvalue array for
-    the blurring kernel, computes the "blurred image" (e.g. Kx and Dx)
+    For a given "unblurred" image x and the eigenvalue array for the blurring kernel, computes the blurred image.
 
     Args:
-        eigvals : complex ndarray
-            m x n representing the eigenvalues of the 2D DFT of the convolution kernel
-        x : ndarray
-            m x n matrix representing the image
+        eigvals (np.ndarray): m x n array of the eigenvalues of the 2D DFT of the convolution kernel (complex ndarray)
+        x (np.ndarray): m x n image as an ndarray
 
     Returns:
-        m x n matrix of the 2d convolution of the kernel with image.
+        np.ndarray: (m x n) ndarray resulting from the convolution (via inverse FFT).
     """
-    return np.fft.ifft2(eigvals * np.fft.fft2(x)) # (Hadamard product)
+    return np.fft.ifft2(eigvals * np.fft.fft2(x))  # (Hadamard product)
 
 
-def cat_mats(mats):
+def cat_mats(mats: Sequence[np.ndarray]) -> np.ndarray:
     """
-    Concatenates list of identically shaped matrices along a third dimension.
-    Throws error if the matrices do not have the same dimensions.
+    Concatenates a list of identically shaped matrices along a third dimension.
+
+    Args:
+        mats (Sequence[np.ndarray]): Sequence of matrices (each an ndarray)
+
+    Returns:
+        np.ndarray: An ndarray with the matrices concatenated along the third axis.
     """
     return np.dstack(mats)
 
 
-def apply_D(eigvals_D1, eigvals_D2, x):
+def apply_D(eigvals_D1: np.ndarray, eigvals_D2: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
-    Computes Dx if provided the eigenvalues of D1 and D2.
+    Computes Dx given the eigenvalues of D1 and D2.
+
+    Args:
+        eigvals_D1 (np.ndarray): Eigenvalues for the first derivative operator component.
+        eigvals_D2 (np.ndarray): Eigenvalues for the second derivative operator component.
+        x (np.ndarray): The image represented as an ndarray.
+
+    Returns:
+        np.ndarray: The computed Dx as an ndarray.
     """
-    return cat_mats([fft_conv2d(eigvals=eigvals_D1, x=x), 
-                     fft_conv2d(eigvals=eigvals_D2, x=x)])
+    return cat_mats([
+        fft_conv2d(eigvals=eigvals_D1, x=x),
+        fft_conv2d(eigvals=eigvals_D2, x=x)
+    ])
 
 
-def apply_A(kernel_eigvals, 
-            eigvals_D1, 
-            eigvals_D2,
-            x):
+def apply_A(kernel_eigvals: np.ndarray, eigvals_D1: np.ndarray, eigvals_D2: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     Computes Ax, where A is block matrix of three rows,
     using the eigenvalues of each block.
+
+    Args:
+        kernel_eigvals (np.ndarray): Eigenvalues of the kernel convolution operator.
+        eigvals_D1 (np.ndarray): Eigenvalues of the first derivative operator.
+        eigvals_D2 (np.ndarray): Eigenvalues of the second derivative operator.
+        x (np.ndarray): The image as an ndarray.
+
+    Returns:
+        np.ndarray: The resulting Ax as an ndarray.
     """
-    Dx = apply_D(x=x, eigvals_D1=eigvals_D1, eigvals_D2=eigvals_D2)
+    Dx = apply_D(eigvals_D1=eigvals_D1, eigvals_D2=eigvals_D2, x=x)
     D1x, D2x = Dx[:, :, 0], Dx[:, :, 1]
     Kx = fft_conv2d(eigvals=kernel_eigvals, x=x)
     return cat_mats([Kx, D1x, D2x])
 
 
-# we should make a general function for these conjugate handlers
-def apply_D_conj(conj_eigvals_D1, conj_eigvals_D2, Dx):
+def apply_D_conj(conj_eigvals_D1: np.ndarray, conj_eigvals_D2: np.ndarray, Dx: np.ndarray) -> np.ndarray:
     """
-    Computes D^TDx, where Dx has aleady been computed for some x.
-    """
-    return fft_conv2d(eigvals=conj_eigvals_D1, x=Dx[:, :, 0]) \
-        + fft_conv2d(eigvals=conj_eigvals_D2, x=Dx[:, :, 1])
-
-
-def apply_A_conj(eigval_conj_arr, y):
-    """
-    Applies A^Ty
+    Computes D^T D x, given that Dx has already been computed for some x.
 
     Args:
-        eigval_conj_arr: array of the complex conjugate eigenvalue arrays of some matrix A.
-        y (np.ndarray): y represented as [y1,y2,y3] concatenated in a
-        third dimension, each yi represented as an NxN matrix
+        conj_eigvals_D1 (np.ndarray): Conjugated eigenvalues of the first derivative operator.
+        conj_eigvals_D2 (np.ndarray): Conjugated eigenvalues of the second derivative operator.
+        Dx (np.ndarray): Precomputed Dx as an ndarray, with the first two channels corresponding to the derivative components.
+
+    Returns:
+        np.ndarray: The result of applying D^T D to x as an ndarray.
     """
+    return fft_conv2d(eigvals=conj_eigvals_D1, x=Dx[:, :, 0]) + \
+           fft_conv2d(eigvals=conj_eigvals_D2, x=Dx[:, :, 1])
 
-    return sum(fft_conv2d(eigval_conj_arr[i], y[:,:,i]) for i in range(len(eigval_conj_arr)))
+
+def apply_A_conj(eigval_conj_arr: Sequence[np.ndarray], y: np.ndarray) -> np.ndarray:
+    """
+    Applies A^T to y, T denoting complex conjugation.
+
+    Args:
+        eigval_conj_arr (Sequence[np.ndarray]): A sequence (array) of complex conjugate eigenvalue arrays of some matrix A.
+        y (np.ndarray): An ndarray where y is represented as [y1, y2, y3] concatenated along the third dimension, 
+                        with each yi being an N x N matrix.
+
+    Returns:
+        np.ndarray: The result of applying A^T to y as an ndarray.
+    """
+    return sum(fft_conv2d(eigvals=eigval_conj_arr[i], x=y[:, :, i]) for i in range(len(eigval_conj_arr)))
 
 
-def apply_composite_op(eigvals_K, 
-                       Dx, 
-                       conj_eigvals_D1,
-                       conj_eigvals_D2,
-                       kernel_conv_x,
-                       x):
-    
+def apply_composite_op(eigvals_K: np.ndarray, 
+                       Dx: np.ndarray, 
+                       conj_eigvals_D1: np.ndarray,
+                       conj_eigvals_D2: np.ndarray,
+                       kernel_conv_x: np.ndarray,
+                       x: np.ndarray) -> np.ndarray:
     """
     Computes (I + K^TK + D^TD)x, where Dx is already known.
-    """
-    return x \
-        + fft_conv2d(eigvals=np.conjugate(eigvals_K), x=kernel_conv_x) \
-        + apply_D_conj(conj_eigvals_D1=conj_eigvals_D1, conj_eigvals_D2=conj_eigvals_D2, Dx=Dx)
 
-
-def eigvals_mat(conj_eigvals_K, 
-                eigvals_K, 
-                conj_eigvals_D1, 
-                eigvals_D1, 
-                conj_eigvals_D2, 
-                eigvals_D2, 
-                t):
-    """
-    Computes the eigenvalues matrix for the composite operator
-    I + t^2K^TK + t^2D^TD
-    
     Args:
-        conj_eigvals_K (np.ndarray):
-            Conjugated eigenvalues of the kernel convolution operator.
-        eigvals_K (np.ndarray):
-            Eigenvalues of the kernel convolution operator.
-        conj_eigvals_D1 (np.ndarray):
-            Conjugated eigenvalues of the first gradient (derivative) operator.
-        eigvals_D1 (np.ndarray):
-            Eigenvalues of the first gradient (derivative) operator.
-        conj_eigvals_D2 (np.ndarray):
-            Conjugated eigenvalues of the second gradient (derivative) operator.
-        eigvals_D2 (np.ndarray):
-            Eigenvalues of the second gradient (derivative) operator.
-        t (float):
-            The step-size or scaling parameter for the operators.
-            
+        eigvals_K (np.ndarray): Eigenvalues of the kernel convolution operator.
+        Dx (np.ndarray): Precomputed Dx as an ndarray.
+        conj_eigvals_D1 (np.ndarray): Conjugated eigenvalues of the first derivative operator.
+        conj_eigvals_D2 (np.ndarray): Conjugated eigenvalues of the second derivative operator.
+        kernel_conv_x (np.ndarray): The kernel-convolved image, computed via fft_conv2d.
+        x (np.ndarray): The original image represented as an ndarray.
+
     Returns:
-        np.ndarray:
-            The computed eigenvalues matrix.
+        np.ndarray: The result of applying the composite operator to x as an ndarray.
+    """
+    return x + \
+           fft_conv2d(eigvals=np.conjugate(eigvals_K), x=kernel_conv_x) + \
+           apply_D_conj(conj_eigvals_D1=conj_eigvals_D1, conj_eigvals_D2=conj_eigvals_D2, Dx=Dx)
+
+
+def eigvals_mat(conj_eigvals_K: np.ndarray, 
+                eigvals_K: np.ndarray, 
+                conj_eigvals_D1: np.ndarray, 
+                eigvals_D1: np.ndarray, 
+                conj_eigvals_D2: np.ndarray, 
+                eigvals_D2: np.ndarray, 
+                t: float) -> np.ndarray:
+    """
+    Computes the eigenvalues matrix 
+    for the composite operator I + t^2K^TK + t^2D^TD
+
+    Args:
+        conj_eigvals_K (np.ndarray): Conjugated eigenvalues of the kernel convolution operator.
+        eigvals_K (np.ndarray): Eigenvalues of the kernel convolution operator.
+        conj_eigvals_D1 (np.ndarray): Conjugated eigenvalues of the first derivative operator.
+        eigvals_D1 (np.ndarray): Eigenvalues of the first derivative operator.
+        conj_eigvals_D2 (np.ndarray): Conjugated eigenvalues of the second derivative operator.
+        eigvals_D2 (np.ndarray): Eigenvalues of the second derivative operator.
+        t (float): The step-size or scaling parameter for the operators.
+
+    Returns:
+        np.ndarray: The computed eigenvalues matrix.
     """
     ones_mat = np.ones_like(eigvals_K)
-    return ones_mat + (t**2) * (conj_eigvals_K * eigvals_K) \
-           + (t**2) * (conj_eigvals_D1 * eigvals_D1) \
-           + (t**2) * (conj_eigvals_D2 * eigvals_D2)
+    return ones_mat + (t**2) * (conj_eigvals_K * eigvals_K) + \
+           (t**2) * (conj_eigvals_D1 * eigvals_D1) + \
+           (t**2) * (conj_eigvals_D2 * eigvals_D2)
 
 
-def fft_invert(eigvals_mat, x):
+def fft_invert(eigvals_mat: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
-    Computes A^(-1)x using fft and eigenvalues of some matrix A.
+     Computes A^(-1)x using fft and eigenvalues of some matrix A.
+
+    Args:
+        eigvals_mat (np.ndarray): The eigenvalues matrix of A (as computed from eigvals_mat or similar functions).
+        x (np.ndarray): The image or vector to which the inverse operation is applied, represented as an ndarray.
+
+    Returns:
+        np.ndarray: The result of the inverse operation as an ndarray.
     """
     return np.fft.ifft2(np.fft.fft2(x) / eigvals_mat)
 
@@ -165,4 +198,7 @@ if __name__ == "__main__":
 
     D = apply_D(eigvals_D1=D1_eigvals, eigvals_D2=D2_eigvals, x=rand_img)
     
+    # Sample calls for apply_A and others. Make sure the appropriate arrays are used.
+    A_out = apply_A(kernel_eigvals=out, eigvals_D1=D1_eigvals, eigvals_D2=D2_eigvals, x=rand_img)
     print(D)
+    print(A_out)

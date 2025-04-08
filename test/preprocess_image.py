@@ -20,7 +20,7 @@ def normalize_image(image_mat):
     """
     Scales image pixels between 0 and 1 with min-max scaling:
 
-    Let I := input image (matrix),
+    Let I := input image (ndarray),
     m := min pixel value in I,
     M:= Max pixel value in I,
 
@@ -30,7 +30,7 @@ def normalize_image(image_mat):
         image (ndarray): 2D numpy array of image
 
     Returns: 
-        Min-Max scaled image (pixels in range (0,1)) 
+        Min-Max scaled image (pixels in range (0,1)) (ndarray).
     """
     min_ = image_mat.min()
     return (image_mat - min_)/(image_mat.max() - min_)

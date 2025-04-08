@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # my_path = 'testimages\\dcytest.png' # <-- MODIFY THIS AS NEEDED
     path_to_image = os.path.join(cur_dir, my_path)
 
-    k = kernel.gaussian_kernel()
+    k = kernel.motion_kernel(len=15)
     b, x = blur_image(path_to_image=path_to_image,
                       show_before=True,
                       show_after=True,
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     """
     Sample test
     """
-    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual
+    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM
     import numpy as np
 
     def test_solver(solver):
@@ -89,5 +89,8 @@ if __name__ == "__main__":
     # dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
     # test_solver(dr_primal)
 
-    dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
-    test_solver(dr_dual)
+    # dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
+    # test_solver(dr_dual)
+
+    admm = ADMM(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
+    test_solver(admm)

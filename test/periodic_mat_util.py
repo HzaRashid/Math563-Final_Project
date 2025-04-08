@@ -149,7 +149,7 @@ def eigvals_mat(conj_eigvals_K: np.ndarray,
                 t: float) -> np.ndarray:
     """
     Computes the eigenvalues matrix 
-    for the composite operator I + t^2K^TK + t^2D^TD
+    for the composite operator I + tK^TK + tD^TD
 
     Args:
         conj_eigvals_K (np.ndarray): Conjugated eigenvalues of the kernel convolution operator.

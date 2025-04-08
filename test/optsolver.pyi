@@ -18,7 +18,7 @@ class DouglasRachfordPrimal(OptSolver):
                  gamma: float = 0.1) -> None: ...
     
 
-class DouglasRachfordDual(OptSolver):
+class DouglasRachfordPrimalDual(OptSolver):
     def __init__(self, k: int, b: int,
                  deblurring_objective: str = 'l1',
                  maxiter: int = 500,

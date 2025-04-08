@@ -9,21 +9,23 @@ class OptUtil:
         self.conj_eigval = {key: np.conjugate(val) for key, val in self.eigval.items()}
         # Eigenvalue for (I+tA^TA)
         self.big_eigval1 = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
-                                  eigvals_K=self.eigval['K'], 
-                                  conj_eigvals_D1=self.conj_eigval['D1'], 
-                                  eigvals_D1=self.eigval['D1'], 
-                                  conj_eigvals_D2=self.conj_eigval['D2'], 
-                                  eigvals_D2=self.eigval['D2'],
-                                  t=1)
+                                           eigvals_K=self.eigval['K'], 
+                                           conj_eigvals_D1=self.conj_eigval['D1'], 
+                                           eigvals_D1=self.eigval['D1'], 
+                                           conj_eigvals_D2=self.conj_eigval['D2'], 
+                                           eigvals_D2=self.eigval['D2'],
+                                           t=1)
+        # for this we can subtract ones_like(eigval['K']) 
+        # from the above, multipy the result
+        # by t, then add back I?
         self.big_eigval = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
-                                  eigvals_K=self.eigval['K'], 
-                                  conj_eigvals_D1=self.conj_eigval['D1'], 
-                                  eigvals_D1=self.eigval['D1'], 
-                                  conj_eigvals_D2=self.conj_eigval['D2'], 
-                                  eigvals_D2=self.eigval['D2'],
-                                  t=t)
+                                          eigvals_K=self.eigval['K'], 
+                                          conj_eigvals_D1=self.conj_eigval['D1'], 
+                                          eigvals_D1=self.eigval['D1'], 
+                                          conj_eigvals_D2=self.conj_eigval['D2'], 
+                                          eigvals_D2=self.eigval['D2'],
+                                          t=t)
         
-
     def applyA(self,x):
         '''
         Applies Ax
@@ -45,9 +47,9 @@ class OptUtil:
             third dimension, each yi represented as an NxN matrix
         """
         return mat.apply_A_conj(eigval_conj_arr=[self.conj_eigval['K'], 
-                                                    self.conj_eigval['D1'], 
-                                                    self.conj_eigval['D2']
-                                                    ], y=y)
+                                                 self.conj_eigval['D1'], 
+                                                 self.conj_eigval['D2']], 
+                                y=y)
     
     def applyBig1(self,x):
         '''
@@ -57,7 +59,7 @@ class OptUtil:
             t (int): step size
             x (np.ndarray): x represented as an NxN matrix
         '''
-        return mat.fft_invert(self.big_eigval1,x)
+        return mat.fft_invert(self.big_eigval1, x)
     
     def applyBig(self,x):
         '''
@@ -67,7 +69,7 @@ class OptUtil:
             t (int): step size
             x (np.ndarray): x represented as an NxN matrix
         '''
-        return mat.fft_invert(self.big_eigval,x)   
+        return mat.fft_invert(self.big_eigval, x)   
     
     def applyBigT(self,t,y):
         '''
@@ -83,12 +85,12 @@ class OptUtil:
 
     def apply_eigvals_mat(self, t):
         return mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
-                                  eigvals_K=self.eigval['K'], 
-                                  conj_eigvals_D1=self.conj_eigval['D1'], 
-                                  eigvals_D1=self.eigval['D1'], 
-                                  conj_eigvals_D2=self.conj_eigval['D2'], 
-                                  eigvals_D2=self.eigval['D2'], 
-                                  t=t)
+                               eigvals_K=self.eigval['K'], 
+                               conj_eigvals_D1=self.conj_eigval['D1'], 
+                               eigvals_D1=self.eigval['D1'], 
+                               conj_eigvals_D2=self.conj_eigval['D2'], 
+                               eigvals_D2=self.eigval['D2'], 
+                               t=t)
 
     def conjugate_prox(self, prox_op, y, t):
         """
@@ -97,7 +99,7 @@ class OptUtil:
         a using moreau decomposition variant (t > 0 a scalar, * denotes multiplication).
 
         Args:
-            prox_op (function: ndarray -> ndarray): 
+            prox_op (function: np.ndarray -> np.ndarray): 
                 proximal operator of a function f.
             y (ndarray): input to the conjugate proximal operator.
             t (float): positive scalar.
@@ -116,6 +118,7 @@ class OptUtil:
              x=mat.fft_conv2d(self.eigval['K'], x) - b, 
              ord=ord
              )
+
 
 def build_eigval_store(key_kernel_dict, shape):
     """

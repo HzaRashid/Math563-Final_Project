@@ -1,10 +1,18 @@
 import periodic_mat_util as mat
+import prox_util
 import numpy as np
 
+
 class OptUtil:
-    def __init__(self, eigval, t):
+    """
+    algorithm utility functions using saved state (leading to faster algorithms), 
+    such as image shape, eigenvalues of 2D DFT
+    of convolution kernel and discrete gradient operator,
+    and the proximal operator of the user-selected deblurring objective.
+    """
+    def __init__(self, key_kernel_dict, shape, t, deblurring_prox):
         # Eigenvalue for K,D1,D2
-        self.eigval = eigval
+        self.eigval = build_eigval_store(key_kernel_dict=key_kernel_dict, shape=shape)
         # Eigenvalue for K^T,D1^T,D2^T
         self.conj_eigval = {key: np.conjugate(val) for key, val in self.eigval.items()}
         # Eigenvalue for (I+tA^TA)
@@ -25,7 +33,9 @@ class OptUtil:
                                           conj_eigvals_D2=self.conj_eigval['D2'], 
                                           eigvals_D2=self.eigval['D2'],
                                           t=t)
-        
+        self.proxdbl = deblurring_prox
+        self.proxiso = prox_util.iso_prox
+
     def applyA(self,x):
         '''
         Applies Ax
@@ -118,6 +128,12 @@ class OptUtil:
              x=mat.fft_conv2d(self.eigval['K'], x) - b, 
              ord=ord
              )
+    
+    def objective_prox(self, y, b, t, g):
+        return mat.cat_mats([
+            self.proxdbl(t=t, y=y[:,:,0], b=b),
+            *self.proxiso(t=t, g=g, w1=y[:,:,1], w2=y[:,:,2])
+            ])
 
 
 def build_eigval_store(key_kernel_dict, shape):

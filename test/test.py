@@ -86,15 +86,15 @@ if __name__ == "__main__":
         plt.loglog(eps)
         plt.show()
 
-    # dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=200, deblurring_objective='l1')
-    # test_solver(dr_primal)
+    dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=100, deblurring_objective='l1')
+    test_solver(dr_primal)
 
-    # # dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=50, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
-    # # test_solver(dr_dual)
+    dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
+    test_solver(dr_dual)
+
+    admm = ADMM(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
+    test_solver(admm)
 
     cham_pock = ChambollePock(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, step_size2=0.4,
                                relax=2.0, gamma=0.05)
     test_solver(cham_pock)
-
-    admm = ADMM(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
-    test_solver(admm)

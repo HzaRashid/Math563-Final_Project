@@ -65,12 +65,12 @@ if __name__ == "__main__":
     """
     Sample test
     """
-    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM
+    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
     import numpy as np
 
     def test_solver(solver):
-    # This wrapper shows: the image before blurring, the blurred image,
-    # the deblurred image, and a graph for the objective value
+    # This wrapper runs the chosen algorithm and shows:
+    # the deblurred image and a graph for the objective value
         start= time.time()
         res, eps = solver.solve(track_objective=True)
         end = time.time()
@@ -86,11 +86,15 @@ if __name__ == "__main__":
         plt.loglog(eps)
         plt.show()
 
-    # dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=500, deblurring_objective='l1')
+    # dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=200, deblurring_objective='l1')
     # test_solver(dr_primal)
 
-    # dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
-    # test_solver(dr_dual)
+    # # dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=50, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
+    # # test_solver(dr_dual)
 
-    admm = ADMM(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
+    cham_pock = ChambollePock(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, step_size2=0.4,
+                               relax=2.0, gamma=0.05)
+    test_solver(cham_pock)
+
+    admm = ADMM(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
     test_solver(admm)

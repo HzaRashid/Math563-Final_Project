@@ -202,25 +202,37 @@ class ChambollePock(OptSolver):
         x = np.zeros_like(self.b)
         y = self.util.applyA(x)
         z = x.copy()
-        eps = np.zeros(self.maxiter)
+        eps = []
 
         for i in range(self.maxiter):
-            y = self.prox_g_conj(y + sigma * self.util.applyA(z))
+
+            # Prox sg*
+            y = self.prox_g_conj(y + sigma * self.util.applyA(z), t=sigma)
+            
             x_old = x.copy()
+
+            # Prox tf
             x = self.prox_box(tau, x - tau * self.util.applyAT(y))
+            
             z = 2 * x - x_old
 
-            eps[i] = np.linalg.norm(mat.fft_conv2d(self.eigval['K'], x) - self.b)
+            if track_objective:
+                eps.append(self.util.get_objective(x=x, b=self.b, ord=self.err_ord))
+        
+        return x, eps or [self.util.get_objective(x=x, b=self.b, ord=self.err_ord)]
+        
+    def prox_g(self,y):
+            # Prox g to get conj of (step size 1)
+            y1 = self.proxdbl(1, y[:, :, 0], self.b)
+            y2,y3 = self.prox_iso(1, self.gamma, y[:, :, 1], y[:, :, 2])
+            return mat.cat_mats([y1,y2,y3])
+            
+    def prox_g_conj(self,y,t):
+            # Outputs prox tg* of y
+            return self.util.conjugate_prox(self.prox_g, y=y,t=t)
 
-        return x, eps
 
-    def prox_g(self, y, sigma):
-        y1 = self.proxdbl(sigma, y[:, :, 0], self.b)
-        y2, y3 = self.prox_iso(sigma, self.gamma, y[:, :, 1], y[:, :, 2])
-        return np.dstack([y1, y2, y3])
-
-    def prox_g_conj(self, y, sigma, prox_g):
-        return self.conjugate_prox(prox_g, y, sigma)
+    
     
 
 if __name__ == "__main__":

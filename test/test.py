@@ -65,7 +65,7 @@ if __name__ == "__main__":
     """
     Sample test
     """
-    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM
+    from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
     import numpy as np
 
     def test_solver(solver):
@@ -92,5 +92,8 @@ if __name__ == "__main__":
     # dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
     # test_solver(dr_dual)
 
-    admm = ADMM(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
-    test_solver(admm)
+    # admm = ADMM(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
+    # test_solver(admm)
+
+    chapok = ChambollePock(k=k, b=b, maxiter=500, deblurring_objective='l1', step_size=0.1, step_size2=0.1, gamma=0.05)
+    test_solver(chapok)

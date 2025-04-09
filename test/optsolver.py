@@ -113,6 +113,11 @@ class DouglasRachfordPrimalDual(OptSolver):
         eps = []
 
         for _ in range(self.maxiter):
+            """
+            prox[t*g_conj](q) = q - [prox((1/t)*g)](q/t),
+            as described in 'Primal-Dual Decomposition by Operator 
+            Splitting and Applications to Image Deblurring' (O'Connor et al., 2014).
+            """
             x, z = self.resolvantA(p, q)
             w, v = self.resolvantB(x, z, p, q)
             p += rho * (w - x).real
@@ -124,11 +129,6 @@ class DouglasRachfordPrimalDual(OptSolver):
         return self.prox_box(t, p), eps or [self.util.get_objective(x=x, b=self.b, ord=self.err_ord)]
     
     def resolvantA(self, p, q):
-        """
-        prox[t*g_conj](q) = q - t*[prox((1/t)*g)](q/t),
-        as described in 'Primal-Dual Decomposition by Operator 
-        Splitting and Applications to Image Deblurring' (O'Connor et al., 2014).
-        """
         q1t = self.trec * q
         z = np.dstack([self.proxdbl(self.trec, q1t[:,:,0], self.b),
                        *self.prox_iso(self.trec, self.gamma, q1t[:,:,1], q1t[:,:,2])])
@@ -193,51 +193,52 @@ class ADMM(OptSolver):
     
 
 class ChambollePock(OptSolver):
-    def __init__(self, k, b, step_size2=0.1, **kwargs):
+    def __init__(self, k, b, step_size2, **kwargs):
         super().__init__(k, b, **kwargs)
-        self.t = self.step_size
-        self.s = step_size2
-        self.trec = 1/self.t
-        self.srec = 1/self.s
-
+        self.step_size2 = step_size2
     def solve(self, track_objective=False):
-        x = self.b.copy()
+        tau = self.step_size
+        sigma = self.step_size2
+        x = np.zeros_like(self.b)
         y = self.util.applyA(x)
         z = x.copy()
-
         eps = []
 
         for i in range(self.maxiter):
-            """
-            prox[s*g_conj](q) = q - s*[prox((1/s)*g)](q/s),
-            as described in 'Primal-Dual Decomposition by Operator 
-            Splitting and Applications to Image Deblurring' (O'Connor et al., 2014).
-            """
-            q =  (y + self.s * self.util.applyA(z))
-            q1s = self.srec*q
-            conj_prox = np.dstack([
-                self.proxdbl(self.srec, q1s[:, :, 0], self.b), 
-                *self.prox_iso(self.srec, self.gamma, q1s[:, :, 1], q1s[:, :, 2])]
-                )
-            y = q - self.t * conj_prox
 
+            # Prox sg*
+            y = self.prox_g_conj(y + sigma * self.util.applyA(z), t=sigma)
+            
             x_old = x.copy()
-            x = self.prox_box(self.step_size, x - self.t * self.util.applyAT(y))
+
+            # Prox tf
+            x = self.prox_box(tau, x - tau * self.util.applyAT(y))
+            
             z = 2 * x - x_old
 
             if track_objective:
                 eps.append(self.util.get_objective(x=x, b=self.b, ord=self.err_ord))
+        
+        return x, eps or [self.util.get_objective(x=x, b=self.b, ord=self.err_ord)]
+        
+    def prox_g(self,y):
+            # Prox g to get conj of (step size 1)
+            y1 = self.proxdbl(1, y[:, :, 0], self.b)
+            y2,y3 = self.prox_iso(1, self.gamma, y[:, :, 1], y[:, :, 2])
+            return mat.cat_mats([y1,y2,y3])
+            
+    def prox_g_conj(self,y,t):
+            # Outputs prox tg* of y
+            return self.util.conjugate_prox(self.prox_g, y=y,t=t)
 
-        return x, eps
+
+    
     
 
 if __name__ == "__main__":
     # usage
     params = {'deblurring_objective': 'l2', 'maxiter': 2}
-    k = np.array([1, 2, 3])[:, None]
-    b = np.random.random((128, 128))
     # solver = DouglasRachfordPrimal(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
     # solver = DouglasRachfordDual(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
-    # solver = ADMM(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
-    solver = ChambollePock(k=k, b=b, **params)
+    solver = ADMM(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
     solver.solve()

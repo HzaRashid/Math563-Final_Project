@@ -4,6 +4,7 @@ import preprocess_image as pci
 import matplotlib.pyplot as plt
 import kernel
 import time
+import numpy as np
 from scipy.signal import convolve2d
 
 
@@ -82,10 +83,13 @@ if __name__ == "__main__":
         plt.ylabel("Error")
         plt.loglog(eps)
         plt.show()
+
         start = time.time()
-        dr_primal.solve()
+        x0, eps = solver.solve()
         end = time.time()
         print(name, "time:", end-start)        
+        # For comparing different hyperparams and epsilons
+        print('epsilon', np.linalg.norm(x-x0, ord=1))        
 
     dr_primal = DouglasRachfordPrimal(k=k, b=b, maxiter=100, deblurring_objective='l1')
     test_solver(dr_primal, "Primal")

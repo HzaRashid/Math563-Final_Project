@@ -4,11 +4,12 @@ import preprocess_image as pci
 import matplotlib.pyplot as plt
 import kernel
 import time
+import numpy as np
 from scipy.signal import convolve2d
 
 
 def blur_image(image=None,
-               path_to_image=None,
+               path_to_image=None, 
                show_before=False, 
                show_after=False, 
                kernel=kernel.gaussian_kernel([15, 15], 5),
@@ -18,7 +19,6 @@ def blur_image(image=None,
     """
     Blurs and adds noise to an image
     """
-
     if path_to_image:
         # Convert to grayscale and normalize
         gray_img = pci.rgb2gray(path_to_image=path_to_image) # PIL Image
@@ -72,14 +72,12 @@ if __name__ == "__main__":
     """
     from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
     import numpy as np
+    shape =(256, 256)
 
-    def test_solver(solver):
+    def test_solver(solver, name, b):
     # This wrapper runs the chosen algorithm and shows:
     # the deblurred image and a graph for the objective value
-        start= time.time()
-        res, eps = solver.solve(track_objective=True)
-        end = time.time()
-        print("Time: ", end-start)
+        res, eps = solver.solve(b, if_track=True)
 
         plt.figure("Algo output")
         plt.imshow(np.real(res), cmap='gray')
@@ -91,16 +89,23 @@ if __name__ == "__main__":
         plt.loglog(eps)
         plt.show()
 
-    params = {'deblurring_objective': 'l1', 'maxiter': 142, 'relax': 0.8983052451899484, 'step_size': 0.8300584498124826, 'gamma': 0.5236246930293363}
-    dr_primal = DouglasRachfordPrimal(k=k, b=b, **params)
-    test_solver(dr_primal)
+        start = time.time()
+        x0, eps = solver.solve(b)
+        end = time.time()
+        print(name, "time:", end-start)        
+        # For comparing different hyperparams and epsilons
+        print('epsilon', np.linalg.norm(x-x0, ord=1))        
 
-    # dr_dual = DouglasRachfordPrimalDual(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
-    # test_solver(dr_dual)
+    dr_primal = DouglasRachfordPrimal(k=k, shape=shape)
 
-    # admm = ADMM(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
-    # test_solver(admm)
+    dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
 
-    # cham_pock = ChambollePock(k=k, b=b, maxiter=100, deblurring_objective='l1', step_size=0.4, step_size2=0.4,
-    #                            relax=2.0, gamma=0.05)
-    # test_solver(cham_pock)
+    admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=0.8, gamma=0.05)
+
+    cham_pock = ChambollePock(k=k, shape=shape, maxiter=100, deblurring_objective='l1', step_size=0.4, step_size2=0.4,
+                               relax=2.0, gamma=0.05)
+    
+    test_solver(dr_primal, "Primal", b)
+    test_solver(dr_dual, "Dual", b)
+    test_solver(admm, "ADMM", b)
+    test_solver(cham_pock, "ChambollePock", b)

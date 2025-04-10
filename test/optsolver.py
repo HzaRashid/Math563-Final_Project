@@ -28,7 +28,7 @@ class OptSolver:
                  k, 
                  b,
                  deblurring_objective='l1',
-                 maxiter=500,
+                 maxiter=100,
                  step_size=0.1,
                  relax=0.5,
                  gamma=0.1

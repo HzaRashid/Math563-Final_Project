@@ -10,20 +10,19 @@ class SolverTemplate:
                  initial_iterates,
                  scaling,
                  maxiter,
-                 util,
                  b,
                  err_ord,
                  step_size
                  ):
         self.scaling = scaling
         self.initial_iterates = initial_iterates
-        self.util = util
         self.maxiter = maxiter
         self.b = b
         self.err_ord=err_ord
         self.step_size = step_size
         
-    def douglasrachford_main(self, resolvent_A, resolvent_B, track_objective=False): 
+    def douglasrachford_main(self, resolvent_A, resolvent_B,
+                             get_obj, if_track=False): 
         z1, z2 = self.initial_iterates
         eps = []
         for _ in range(self.maxiter):
@@ -32,15 +31,16 @@ class SolverTemplate:
             z1 = z1 + self.scaling * (u - x)
             z2 = z2 + self.scaling * (v - y)
 
-            if track_objective:
-                eps.append(self.util.get_objective(x=x, b=self.b, ord=self.err_ord))
+            if if_track:
+                eps.append(get_obj(x,self.b,ord=self.err_ord))
         
-        return self._douglasrachford_out(x, z1, eps)
+        return self._douglasrachford_out(x, z1, eps, get_obj)
     
-    def _douglasrachford_out(self, x, z1, eps):
-        return prox.box_prox(self.step_size, z1), [*eps[:-1], self.util.get_objective(x=x, b=self.b, ord=self.err_ord)]
+    def _douglasrachford_out(self, x, z1, eps, get_obj):
+        return prox.box_prox(self.step_size, z1), [*eps[:-1], get_obj(x,self.b,ord=self.err_ord)]
     
-    def admm_main(self, resolvent_A, resolvent_B, final_out, track_objective):
+    def admm_main(self, resolvent_A, resolvent_B, final_out,
+                  get_obj, if_track=False):
         trec = 1/self.step_size
         x, u, y, w, z = self.initial_iterates
         eps = []
@@ -52,22 +52,23 @@ class SolverTemplate:
             w = w + self.scaling * (x - u)
             z = z + self.scaling * (Ax - y)
 
-            if track_objective:
-                eps.append(self.util.get_objective(x, self.b, ord=self.err_ord))
+            if if_track:
+                eps.append(get_obj(x,self.b,ord=self.err_ord))
 
         return final_out(u, y, trec*w, trec*z), eps
     
-    def chambollepock_main(self, prox_g_conj, track_objective=False):
+    def chambollepock_main(self, prox_f,  prox_g_conj,
+                           get_obj, if_track=False):
         x, y, z = self.initial_iterates
         eps = []
 
         for _ in range(self.maxiter):
             y = prox_g_conj(y, z)
-            x_up = prox.box_prox(self.step_size, x - self.step_size * self.util.applyAT(y))
+            x_up = prox_f(x, y)
             z = 2 * x_up - x
             x = x_up
 
-            if track_objective:
-                eps.append(self.util.get_objective(x=x, b=self.b, ord=self.err_ord))
+            if if_track:
+                eps.append(get_obj(x,self.b,ord=self.err_ord))
 
         return x, eps

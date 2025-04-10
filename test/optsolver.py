@@ -9,7 +9,6 @@ def construct_solver(optsolver):
     return SolverTemplate(
         initial_iterates=getattr(optsolver, 'initial_iterates', None),
         scaling=getattr(optsolver, 'scaling', None),
-        util=getattr(optsolver, 'util', None),
         maxiter=getattr(optsolver, 'maxiter', None),
         b=getattr(optsolver, 'b', None),
         err_ord=getattr(optsolver, 'err_ord', None),
@@ -66,6 +65,24 @@ class OptSolver:
             shape=b.shape,
             t=step_size,
             deblurring_prox=self.proxdbl)
+        
+    def get_objective(self, x, b, ord):
+       """
+       Returns the objective value
+       Args:
+            x: current image
+            b: blurred image
+            ord: indicates 1 or 2-norm
+       """
+       y = self.util.applyA(x)
+       # |y[0]-b| using 1 or 2 norm
+       eps1 = np.linalg.norm(
+             x = y[:,:,0] - b, 
+             ord=ord
+             )
+       # iso(y[1],y[2])
+       eps2 = np.sum(np.sqrt(np.abs(y[:,:,1])**2 + np.abs(y[:,:,2])**2))
+       return eps1 + self.gamma*eps2
     
 
 class DouglasRachfordPrimal(OptSolver):
@@ -76,10 +93,11 @@ class DouglasRachfordPrimal(OptSolver):
         self.initial_iterates = [b, self.util.applyA(self.b)]
         self.solver = construct_solver(self)
         
-    def solve(self, track_objective=False):
+    def solve(self, if_track=False):
         return self.solver.douglasrachford_main(resolvent_A=self.resolvent_A,
                                                 resolvent_B=self.resolvent_B,
-                                                track_objective=track_objective)
+                                                if_track=if_track,
+                                                get_obj = self.get_objective)
 
     def resolvent_A(self, z1, z2):
         # Computes prox tf(z1), prox tg(z2)
@@ -101,10 +119,11 @@ class DouglasRachfordPrimalDual(OptSolver):
         self.initial_iterates = [self.b, self.util.applyA(self.b)]
         self.solver = construct_solver(self)
 
-    def solve(self, track_objective=False):
+    def solve(self, if_track=False):
         return self.solver.douglasrachford_main(resolvent_A=self.resolvent_A,
                                                 resolvent_B=self.resolvent_B,
-                                                track_objective=track_objective)
+                                                if_track=if_track,
+                                                get_obj=self.get_objective)
     
     def resolvent_A(self, p, q):
         # z = prox_g/t(q/t)
@@ -134,11 +153,12 @@ class ADMM(OptSolver):
         self.initial_iterates = [like_b, like_b, like_b_triple_cat, like_b, like_b_triple_cat]
         self.solver = construct_solver(self)
 
-    def solve(self, track_objective=False):
+    def solve(self, if_track=False):
         return self.solver.admm_main(resolvent_A=self.resolvent_A,
                                      resolvent_B=self.resolvent_B,
                                      final_out=self.composite_op,
-                                     track_objective=track_objective)
+                                     if_track=if_track,
+                                     get_obj=self.get_objective)
     
     def composite_op(self, u, y, w1t, z1t):
         # (I+ATA)^(-1)(u+A^Ty-(w/t+A^Tz/t))
@@ -163,9 +183,11 @@ class ChambollePock(OptSolver):
         self.initial_iterates = [self.b.copy(), self.util.applyA(b), self.b.copy()] # x, y, z
         self.solver = construct_solver(self)
 
-    def solve(self, track_objective=False):
+    def solve(self, if_track=False):
         return self.solver.chambollepock_main(prox_g_conj=self.prox_g_conj,
-                                              track_objective=track_objective)
+                                              prox_f=self.prox_f,
+                                              if_track=if_track,
+                                              get_obj=self.get_objective)
     
     def prox_g_conj(self, y, z):
         q = y + self.s * self.util.applyA(z)
@@ -174,6 +196,8 @@ class ChambollePock(OptSolver):
                                                      b=self.b, 
                                                      t=self.s, 
                                                      g=self.gamma)
+    def prox_f(self, x, y):
+        return self.prox_box(t=self.t, x = x - self.t * self.util.applyAT(y))
     
 
 

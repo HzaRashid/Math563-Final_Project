@@ -77,18 +77,6 @@ class OptUtil:
         """
         return y - t * prox_op(y / t)
     
-    def get_objective(self, x, b, ord):
-       """
-       Returns the objective value
-       Args:
-            x: current image
-            b: blurred image
-            ord: 1 or 2-norm
-       """
-       return np.linalg.norm(
-             x=mat.fft_conv2d(self.eigval['K'], x) - b, 
-             ord=ord
-             )
     
     def objective_prox(self, y, b, t, g):
         '''

@@ -27,7 +27,6 @@ def l2prox(t, y, b):
     """
     Computes the proximal operator of the t-scaled squared L2 distance t||y - b||^2 
     where b is const. and y is free.
-    https://odlgroup.github.io/odl/generated/odl.solvers.nonsmooth.proximal_operators.proximal_l2_squared.html#odl.solvers.nonsmooth.proximal_operators.proximal_l2_squared
 
     Args:
         t (float): positive step-size
@@ -45,7 +44,6 @@ def box_prox(t, x):
     """
     Computes the proximal operator t-scaled indicator of 
     {x, a finite dimenional vector: 0 <= x_i <= 1 for all dimenions i}.
-    https://odlgroup.github.io/odl/generated/odl.solvers.nonsmooth.proximal_operators.proximal_box_constraint.html#odl.solvers.nonsmooth.proximal_operators.proximal_box_constraint
 
     Args:
         t (float): positive step-size

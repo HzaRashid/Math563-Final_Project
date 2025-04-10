@@ -1,31 +1,30 @@
 import periodic_mat_util as mat
+import prox_util
 import numpy as np
 
+
 class OptUtil:
-    def __init__(self, eigval, t):
+    """
+    algorithm utility functions using saved state (leading to faster algorithms), 
+    such as image shape, eigenvalues of 2D DFT
+    of convolution kernel and discrete gradient operator,
+    and the proximal operator of the user-selected deblurring objective.
+    """
+    def __init__(self, key_kernel_dict, shape, t, deblurring_prox):
         # Eigenvalue for K,D1,D2
-        self.eigval = eigval
+        self.eigval = build_eigval_store(key_kernel_dict=key_kernel_dict, shape=shape)
         # Eigenvalue for K^T,D1^T,D2^T
         self.conj_eigval = {key: np.conjugate(val) for key, val in self.eigval.items()}
-        # Eigenvalue for (I+tA^TA)
-        self.big_eigval1 = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
+        # Eigenvalue for A^TA
+        self.big_eigval = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
                                            eigvals_K=self.eigval['K'], 
                                            conj_eigvals_D1=self.conj_eigval['D1'], 
                                            eigvals_D1=self.eigval['D1'], 
                                            conj_eigvals_D2=self.conj_eigval['D2'], 
-                                           eigvals_D2=self.eigval['D2'],
-                                           t=1)
-        # for this we can subtract ones_like(eigval['K']) 
-        # from the above, multipy the result
-        # by t, then add back I?
-        self.big_eigval = mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
-                                          eigvals_K=self.eigval['K'], 
-                                          conj_eigvals_D1=self.conj_eigval['D1'], 
-                                          eigvals_D1=self.eigval['D1'], 
-                                          conj_eigvals_D2=self.conj_eigval['D2'], 
-                                          eigvals_D2=self.eigval['D2'],
-                                          t=t)
-        
+                                           eigvals_D2=self.eigval['D2'])
+        self.proxdbl = deblurring_prox
+        self.proxiso = prox_util.iso_prox
+
     def applyA(self,x):
         '''
         Applies Ax
@@ -51,46 +50,18 @@ class OptUtil:
                                                  self.conj_eigval['D2']], 
                                 y=y)
     
-    def applyBig1(self,x):
-        '''
-        Applies (I+A^TA)^(-1)(x)
-
-        Args:
-            t (int): step size
-            x (np.ndarray): x represented as an NxN matrix
-        '''
-        return mat.fft_invert(self.big_eigval1, x)
-    
-    def applyBig(self,x):
+    def applyBig(self,x,t=1):
         '''
         Applies (I+tA^TA)^(-1)(x)
 
         Args:
-            t (int): step size
             x (np.ndarray): x represented as an NxN matrix
-        '''
-        return mat.fft_invert(self.big_eigval, x)   
-    
-    def applyBigT(self,t,y):
-        '''
-        Applies (I+tAA^T)^(-1)(y)
-        Args:
             t (int): step size
-            y (np.ndarray): y represented as [y1,y2,y3] concatenated in a
-            third dimension, each yi represented as an NxN matrix       
         '''
-        
-        newy = y + t * self.applyA(self.applyAT(y)) # (I+tAA^T)y
-        return np.fft.ifft2(np.square(np.fft.fft2(y)) / newy) # (I+tAA^T)^(-1)y
-
-    def apply_eigvals_mat(self, t):
-        return mat.eigvals_mat(conj_eigvals_K=self.conj_eigval['K'],
-                               eigvals_K=self.eigval['K'], 
-                               conj_eigvals_D1=self.conj_eigval['D1'], 
-                               eigvals_D1=self.eigval['D1'], 
-                               conj_eigvals_D2=self.conj_eigval['D2'], 
-                               eigvals_D2=self.eigval['D2'], 
-                               t=t)
+        big = self.big_eigval
+        # Eigenvalues of I+tA^TA
+        eigval = np.ones_like(big) + t*big
+        return mat.fft_invert(eigval, x)
 
     def conjugate_prox(self, prox_op, y, t):
         """
@@ -118,6 +89,22 @@ class OptUtil:
              x=mat.fft_conv2d(self.eigval['K'], x) - b, 
              ord=ord
              )
+    
+    def objective_prox(self, y, b, t, g):
+        '''
+        Computes prox_tg(y), where g = |y[0]-b| + gamma*iso(y[1],y[2])
+        Args:
+            y: matrix y concatenated in the 3rd dimension
+            b: matrix of blurred image
+            t: step size for tg
+            g: gamma
+        Returns:
+            prox_tg(y) concatenated in the 3rd dimension
+        '''
+        return mat.cat_mats([
+            self.proxdbl(t=t, y=y[:,:,0], b=b),
+            *self.proxiso(t=t, g=g, w1=y[:,:,1], w2=y[:,:,2])
+            ])
 
 
 def build_eigval_store(key_kernel_dict, shape):

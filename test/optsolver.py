@@ -34,16 +34,16 @@ class OptSolver:
                  ):
         """
         Parameters:
-            k: description of k
-            b: description of b
-            deblurring_objective: description...
-            maxiter: description...
-            relax: description...
-            step_size: description...
-            gamma: description...
+            k: kernel of convolution 
+            shape: shape of image
+            deblurring_objective: 'l1' or 'l2'
+            maxiter: number of iterations to run
+            relax: hyperparameter rho
+            step_size: hyperparameter t
+            step_size2: hyperparameter s (only for ChambollePock)
+            gamma: hyperparameter gamma
         """
         # user's hyperparameters
-        # self.b = b
         self.proxdbl = {'l1': prox.l1prox,
                         'l2': prox.l2prox
                         }.get(deblurring_objective, 'l1')
@@ -81,7 +81,7 @@ class OptSolver:
              )
        # iso(y[1],y[2])
        eps2 = np.sum(np.sqrt(np.abs(y[:,:,1])**2 + np.abs(y[:,:,2])**2))
-       return eps1 + self.gamma*eps2
+       return (eps1 + self.gamma*eps2)/np.size(x)
     
 
 class DouglasRachfordPrimal(OptSolver):

@@ -36,17 +36,17 @@ def normalize_image(image_mat):
     return (image_mat - min_)/(image_mat.max() - min_)
 
 
-def rgb2gray(path_to_image):
+def rgb2gray(path_to_image, shape=(256,256)):
     """
     Converts RGB image to grayscale and saves it
 
     Args:
         path_to_image (str): file path to original image
-        destination_path (str): file path to save grayscaled image
+        shape: resize the image to this shape
 
     Returns:
         None
     """
     img = Image.open(fp=path_to_image).convert('L')
-    img = img.resize((256,256))
+    img = img.resize(shape)
     return img

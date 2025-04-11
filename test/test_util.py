@@ -4,12 +4,11 @@ import preprocess_image as pci
 import matplotlib.pyplot as plt
 import kernel
 import time
-import numpy as np
 from scipy.signal import convolve2d
 
-
 def blur_image(image=None,
-               path_to_image=None, 
+               path_to_image=None,
+               shape = (256,256), 
                show_before=False, 
                show_after=False, 
                kernel=kernel.gaussian_kernel([15, 15], 5),
@@ -21,7 +20,7 @@ def blur_image(image=None,
     """
     if path_to_image:
         # Convert to grayscale and normalize
-        gray_img = pci.rgb2gray(path_to_image=path_to_image) # PIL Image
+        gray_img = pci.rgb2gray(path_to_image=path_to_image, shape=shape) # PIL Image
         gray_img_np = pci.image_to_numpy(gray_img)
         x = pci.normalize_image(gray_img_np)
     else: 
@@ -57,13 +56,15 @@ def blur_image(image=None,
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
     my_path = '../testimages/cameraman.jpg'
-    # my_path = 'testimages\\dcytest.png' # <-- MODIFY THIS AS NEEDED
+    # my_path = 'testimages\\mcgill.jpg' # <-- MODIFY THIS AS NEEDED
     path_to_image = os.path.join(cur_dir, my_path)
 
-    k = kernel.motion_kernel(len=15)
+    shape = (256, 256)
+    k = kernel.gaussian_kernel()
     b, x = blur_image(path_to_image=path_to_image,
-                      show_before=True,
-                      show_after=True,
+                      shape=shape,
+                      show_before=False,
+                      show_after=False,
                       kernel=k)
 
     
@@ -72,31 +73,44 @@ if __name__ == "__main__":
     """
     from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
     import numpy as np
-    shape =(256, 256)
 
     def test_solver(solver, name, b):
     # This wrapper runs the chosen algorithm and shows:
     # the deblurred image and a graph for the objective value
         res, eps = solver.solve(b, if_track=True)
-
-        plt.figure("Algo output")
-        plt.imshow(np.real(res), cmap='gray')
+        plt.subplot(2,3,1)
+        plt.imshow(x, cmap='gray')
+        plt.title("Orignal")
         plt.axis('off')
-        plt.show()
-        plt.figure("Objective value")
-        plt.xlabel("Iterations")
-        plt.ylabel("Error")
-        plt.loglog(eps)
-        plt.show()
 
+        plt.subplot(2,3,2)
+        plt.imshow(b, cmap='gray')
+        plt.title("Blurred")
+        plt.axis('off')
+        
+        plt.subplot(2,3,3)
+        plt.imshow(np.real(res), cmap='gray')
+        plt.title(name)
+        plt.axis('off')
+
+        plt.subplot(2,1,2)
+        plt.loglog(eps)
+        plt.xlabel('Iteration')
+        plt.ylabel('Error')
+        plt.title('Convergence')
+        plt.grid(True)
+        plt.show()
         start = time.time()
         x0, eps = solver.solve(b)
         end = time.time()
-        print(name, "time:", end-start)        
-        # For comparing different hyperparams and epsilons
-        print('epsilon', np.linalg.norm(x-x0, ord=1))        
+        print(name, "time:", end-start)
+        print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
+        print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x))        
 
-    dr_primal = DouglasRachfordPrimal(k=k, shape=shape)
+    # You can change hyperparameters here
+
+    dr_primal = DouglasRachfordPrimal(k=k, shape=shape, maxiter=200, deblurring_objective='l1',
+                                   relax=2.0, step_size=0.5, gamma=0.05)
 
     dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1', step_size=0.4, relax=2.0, gamma=0.05)
 

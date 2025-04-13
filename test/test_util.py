@@ -55,7 +55,7 @@ def blur_image(image=None,
     
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
-    my_path = '../testimages/cameraman.jpg'
+    my_path = '../testimages/noisy/Interior_of_the_Basilica_in_Katowice_Panewniki_1918-1939.jpg'
     # my_path = 'testimages\\mcgill.jpg' # <-- MODIFY THIS AS NEEDED
     path_to_image = os.path.join(cur_dir, my_path)
 

@@ -117,7 +117,7 @@ class DouglasRachfordPrimalDual(OptSolver):
         self.scaling = self.relax
         self.solver = construct_solver(self)
 
-    def solve(self, b, if_track=False):
+    def solve(self, b, if_track=False): # same as DRP in structure, different resolvents
         return self.solver.douglasrachford_main(b,
                                                 resolvent_A=self.resolvent_A,
                                                 resolvent_B=self.resolvent_B,
@@ -141,7 +141,7 @@ class DouglasRachfordPrimalDual(OptSolver):
 class ADMM(OptSolver):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 1/t, 1/rho used multiple times, just compute once
+        # 1/t, 1-rho used multiple times, just compute once
         self.trec = 1/self.step_size 
         self.compress = 1 - self.relax
         self.scaling = self.step_size

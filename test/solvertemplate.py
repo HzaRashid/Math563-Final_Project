@@ -7,18 +7,14 @@ class SolverTemplate:
     using saved state (for faster runtime)
     """
     def __init__(self,
-                #  initial_iterates,
                  scaling,
                  maxiter,
-                #  b,
                  err_ord,
                  step_size,
                  util
                  ):
         self.scaling = scaling
-        # self.initial_iterates = initial_iterates
         self.maxiter = maxiter
-        # self.b = b
         self.err_ord=err_ord
         self.step_size = step_size
         self.util = util

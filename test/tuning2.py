@@ -61,15 +61,18 @@ def get_objective(blurred_pairs, one_norms):
     """
     def objective(trial):
         params = {
-            "relax": trial.suggest_float('relax', 1e-5, 2.0),
-            "step_size": trial.suggest_float('step_size', 1e-5, 1e-1),
-            "gamma": trial.suggest_float('gamma', 5e-2, 1.0)
+            "relax": trial.suggest_float('relax', 1e-2, 2.0),  # rho
+            "step_size": trial.suggest_float('step_size', 1e-2, 2.0),  # t
+            # "step_size2": trial.suggest_float('step_size2', 1e-2, 2.0),  # s: Chambolle-Pock
+            "gamma": trial.suggest_float('gamma', 1e-2, 0.5)
         }
-        solver = DouglasRachfordPrimalDual(k=KERNEL,
-                                       shape=SHAPE,
-                                       maxiter=MAX_ITER,
-                                       deblurring_objective=DEBLOB,
-                                       **params)
+        solver = DouglasRachfordPrimalDual(
+            k=KERNEL,
+            shape=SHAPE,
+            maxiter=MAX_ITER,
+            deblurring_objective=DEBLOB,
+            **params
+        )
         total_loss = 0
         for (b, x), imgnorm in zip(blurred_pairs, one_norms):
             out, loss = solver.solve(b, if_track=True)
@@ -96,6 +99,29 @@ def run_category_study(category, precomputed_data):
         "best_value": study.best_value
     }
 
+def run_all_images_study(precomputed_data, image_categories):
+    """ 
+    Runs the hyperparameter tuning study for all images by combining data from all categories.
+    """
+    all_one_norms = []
+    all_blurred_pairs = []
+    # Combine data from all categories.
+    for category in image_categories:
+        one_norms, blurred_pairs = precomputed_data[category]
+        all_one_norms.extend(one_norms)
+        all_blurred_pairs.extend(blurred_pairs)
+        
+    objective_all = get_objective(all_blurred_pairs, all_one_norms)
+    study_all = optuna.create_study(direction="minimize")
+    study_all.optimize(objective_all, n_trials=50)
+    
+    print("Finished combined images study")
+    return {
+        "category": "all",
+        "best_params": study_all.best_params,
+        "best_value": study_all.best_value
+    }
+
 if __name__ == '__main__':
     # ------------------ Precompute Blurred Data for All Categories ------------------
     # This dictionary will map each category to its precomputed tuple (one_norms, blurred_pairs)
@@ -104,12 +130,18 @@ if __name__ == '__main__':
         one_norms, blurred_pairs = precompute_blurred_data(category)
         precomputed_data[category] = (one_norms, blurred_pairs)
     
-    # ------------------ Parallel Hyperparameter Tuning for Each Category ------------------
+    # ------------------ Parallel Hyperparameter Tuning for Each Category and All Images ------------------
     results = {}  # To store best hyperparameters and corresponding loss for each study
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = [executor.submit(run_category_study, category, precomputed_data)
-                   for category in image_categories]
+        # Submit studies for individual categories
+        futures = [
+            executor.submit(run_category_study, category, precomputed_data)
+            for category in image_categories
+        ]
+        # Also submit the combined study for all images
+        futures.append(executor.submit(run_all_images_study, precomputed_data, image_categories))
+        
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             cat = result["category"]
@@ -119,26 +151,6 @@ if __name__ == '__main__':
             }
             print(f"Best params for {cat}: {result['best_params']}")
             print(f"Best loss for {cat}: {result['best_value']}\n")
-    
-    # ------------------ Hyperparameter Tuning for All Images ------------------
-    all_one_norms = []
-    all_blurred_pairs = []
-    all_labels = []
-    for category in image_categories:
-        one_norms, blurred_pairs = precomputed_data[category]
-        all_one_norms.extend(one_norms)
-        all_blurred_pairs.extend(blurred_pairs)
-        all_labels.extend([category] * len(one_norms))
-        
-    objective_all = get_objective(all_blurred_pairs, all_one_norms)
-    study_all = optuna.create_study(direction="minimize")
-    study_all.optimize(objective_all, n_trials=50)
-    results["all"] = {
-        "best_params": study_all.best_params,
-        "best_value": study_all.best_value
-    }
-    print("Best params for all images:", study_all.best_params)
-    print("Best loss for all images:", study_all.best_value)
     
     # ------------------ Saving Hyperparameter Tuning Results ------------------
     with open(os.path.join(output_base_dir, "best_hyperparams.json"), "w") as f:
@@ -154,19 +166,17 @@ if __name__ == '__main__':
     plt.bar(categories_keys, loss_values)
     plt.ylabel("Best Loss")
     plt.title("Comparison of Best Loss Across Image Categories")
-    plt.savefig(os.path.join(output_base_dir,"best_loss_comparison.png"))
+    plt.savefig(os.path.join(output_base_dir, "best_loss_comparison.png"))
     plt.show()
     
     # Save best hyperparameters to CSV.
     df_params = pd.DataFrame(results).transpose()
     print("\nBest Hyperparameters per Category:")
     print(df_params)
-    df_params.to_csv(path_or_buf=os.path.join(output_base_dir,"best_hyperparams.csv"))
+    df_params.to_csv(os.path.join(output_base_dir, "best_hyperparams.csv"))
     print("Best hyperparameters saved to best_hyperparams.csv")
     
     # ------------------ Saving Deblurred Outputs ------------------
-
-    
     # Save deblurred outputs per category using each study's best parameters.
     for category in image_categories:
         one_norms, blurred_pairs = precomputed_data[category]
@@ -175,8 +185,13 @@ if __name__ == '__main__':
         print(f"\nSaving deblurred outputs for category: {category} using best hyperparameters")
     
         for idx, ((b, x), imgnorm) in enumerate(zip(blurred_pairs, one_norms)):
-            solver = DouglasRachfordPrimalDual(k=KERNEL, shape=SHAPE, maxiter=MAX_ITER,
-                                           deblurring_objective=DEBLOB, **results[category]["best_params"])
+            solver = DouglasRachfordPrimalDual(
+                k=KERNEL,
+                shape=SHAPE,
+                maxiter=MAX_ITER,
+                deblurring_objective=DEBLOB,
+                **results[category]["best_params"]
+            )
             out, loss = solver.solve(b, if_track=True)
             out = out.real
             output_path = os.path.join(output_folder, f"{category}_image_{idx}.png")
@@ -187,9 +202,22 @@ if __name__ == '__main__':
     all_output_folder = os.path.join(output_base_dir, "all_best")
     os.makedirs(all_output_folder, exist_ok=True)
     print("\nSaving deblurred outputs for all images using combined best hyperparameters")
+    # First, recombine data for all images.
+    all_blurred_pairs = []
+    all_labels = []
+    for category in image_categories:
+        one_norms, blurred_pairs = precomputed_data[category]
+        all_blurred_pairs.extend(blurred_pairs)
+        all_labels.extend([category] * len(one_norms))
+    
     for idx, ((b, x), label) in enumerate(zip(all_blurred_pairs, all_labels)):
-        solver = DouglasRachfordPrimalDual(k=KERNEL, shape=SHAPE, maxiter=MAX_ITER,
-                                       deblurring_objective=DEBLOB, **results["all"]["best_params"])
+        solver = DouglasRachfordPrimalDual(
+            k=KERNEL,
+            shape=SHAPE,
+            maxiter=MAX_ITER,
+            deblurring_objective=DEBLOB,
+            **results["all"]["best_params"]
+        )
         out, loss = solver.solve(b, if_track=False)
         out = out.real
         output_path = os.path.join(all_output_folder, f"{label}_image_{idx}.png")

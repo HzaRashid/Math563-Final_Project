@@ -1,7 +1,7 @@
 import optuna
 from preprocess_image import *
 from test_util import blur_image
-from optsolver import DouglasRachfordPrimal
+from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
 import os
 import numpy as np
 from kernel import motion_kernel, gaussian_kernel, disk_kernel
@@ -41,8 +41,7 @@ def objective(trial):
 
         b, x = blur_image(image=img,
                           kernel=k,
-                          noise_mode='s&p',
-                          noise_density=0.1
+                          noise_args={'mode': 's&p', 'amount': 0.1}
                           )
         
 

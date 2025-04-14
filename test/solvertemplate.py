@@ -1,5 +1,8 @@
 import prox_util as prox
 import periodic_mat_util as mat
+from optutil import OptUtil
+import numpy as np
+
 # main algorithm logic templates
 class SolverTemplate:
     """
@@ -7,11 +10,11 @@ class SolverTemplate:
     using saved state (for faster runtime)
     """
     def __init__(self,
-                 scaling,
-                 maxiter,
-                 err_ord,
-                 step_size,
-                 util
+                 scaling: float,
+                 maxiter: int,
+                 err_ord: int,
+                 step_size: float,
+                 util: OptUtil
                  ):
         self.scaling = scaling
         self.maxiter = maxiter
@@ -19,8 +22,13 @@ class SolverTemplate:
         self.step_size = step_size
         self.util = util
         
-    def douglasrachford_main(self, b, resolvent_A, resolvent_B,
-                             get_obj, if_track=False): 
+    def douglasrachford_main(self, 
+                             b: np.ndarray, 
+                             resolvent_A, 
+                             resolvent_B,
+                             get_obj, 
+                             if_track=False
+                             ): 
         z1, z2 = b, self.util.applyA(b)
         eps = []
         for _ in range(self.maxiter):

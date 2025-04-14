@@ -8,17 +8,16 @@ import pandas as pd
 
 from preprocess_image import *         # custom preprocessing functions
 from test_util import blur_image         # function that blurs images
-from optsolver import ChambollePock
+from optsolver import ADMM
 from kernel import gaussian_kernel
 
 # Global configuration parameters
 KERNEL = gaussian_kernel()
 SHAPE = (256, 256)
 MAX_ITER = 100
-NOISE_MODE = 's&p'
-NOISE_DENSITY = 0.1
+NOISE_ARGS={'mode': 's&p', 'amount': 0.1}
 DEBLOB = 'l1'
-SOLVER=ChambollePock
+SOLVER=ADMM
 
 # ------------------ Data Configuration & Loading ------------------
 cur_dir = os.path.dirname(__file__)
@@ -50,7 +49,7 @@ def precompute_blurred_data(category):
     images, one_norms = load_images(category_path)
     blurred_pairs = []
     for img in images:
-        b, x = blur_image(image=img, kernel=KERNEL, noise_mode=NOISE_MODE, noise_density=NOISE_DENSITY)
+        b, x = blur_image(image=img, kernel=KERNEL, noise_args=NOISE_ARGS)
         blurred_pairs.append((b, x))
     return one_norms, blurred_pairs
 
@@ -64,7 +63,7 @@ def get_objective(blurred_pairs, one_norms):
         params = {
             "relax": trial.suggest_float('relax', 1e-2, 2.0),  # rho
             "step_size": trial.suggest_float('step_size', 1e-2, 2.0),  # t
-            "step_size2": trial.suggest_float('step_size2', 1e-2, 2.0),  # s: Chambolle-Pock
+            # "step_size2": trial.suggest_float('step_size2', 1e-2, 2.0),  # s: Chambolle-Pock
             "gamma": trial.suggest_float('gamma', 1e-2, 0.5)
         }
         solver = SOLVER(

@@ -6,14 +6,18 @@ import kernel
 import time
 from scipy.signal import convolve2d
 
+default_noise_args = {
+    'mode':'s&p',
+    'amount':0.1
+}
+
 def blur_image(image=None,
                path_to_image=None,
                shape = (256,256), 
                show_before=False, 
                show_after=False, 
                kernel=kernel.gaussian_kernel([15, 15], 5),
-               noise_mode="s&p",
-               noise_density=0.1
+               noise_args=default_noise_args
                ):
     """
     Blurs and adds noise to an image
@@ -34,10 +38,7 @@ def blur_image(image=None,
                     )  
 
     # noise step
-    Kx_plus_n = util.random_noise(Kx, 
-                                  mode=noise_mode, 
-                                  amount=noise_density
-                                  )
+    Kx_plus_n = util.random_noise(Kx, **noise_args)
 
     if show_before:
         plt.figure("Image before blurring")
@@ -58,14 +59,20 @@ if __name__ == "__main__":
     my_path = '../testimages/noisy/Interior_of_the_Basilica_in_Katowice_Panewniki_1918-1939.jpg'
     # my_path = 'testimages\\mcgill.jpg' # <-- MODIFY THIS AS NEEDED
     path_to_image = os.path.join(cur_dir, my_path)
-
+    noise_args = {
+    'mode':'gaussian',
+    'mean':0.0,
+    'var':0.01
+}
     shape = (256, 256)
     k = kernel.gaussian_kernel()
     b, x = blur_image(path_to_image=path_to_image,
                       shape=shape,
                       show_before=False,
                       show_after=False,
-                      kernel=k)
+                      kernel=k,
+                      noise_args=noise_args
+                      )
 
     
     """

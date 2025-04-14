@@ -4,8 +4,8 @@ import json
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-# Import your deblurring solvers, kernel generators, and image processing utilities.
-from kernel import motion_kernel, gaussian_kernel, disk_kernel
+# Import your deblurring solvers, kernel generator, and image processing utilities.
+from kernel import gaussian_kernel
 from preprocess_image import image_to_numpy, rgb2gray, normalize_image
 from test_util import blur_image
 from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
@@ -14,7 +14,7 @@ from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, Ch
 # Set up the fixed image input
 # -----------------------------
 cur_dir = os.path.dirname(__file__)
-out_dir = os.path.join(cur_dir, 'KernelSizes_results')
+out_dir = os.path.join(cur_dir, 'NoiseTypes_results')
 os.makedirs(out_dir, exist_ok=True)
 
 my_path = '../testimages'
@@ -56,35 +56,25 @@ best_hps = {
 }
 
 # -----------------------------
-# Map kernel names to their functions.
+# Define the fixed kernel: Gaussian with hsize=[15,15], sigma=1.0.
 # -----------------------------
-kernel_funcs = {
-    'gaussian': gaussian_kernel,
-    'disk': disk_kernel,
-    'motion': motion_kernel
-}
+KERNEL=gaussian_kernel(hsize=[15, 15], sigma=1.0)
 
 # -----------------------------
-# Define kernel variants for the evaluation.
-# Here we vary the "size" parameters for each kernel type.
+# Define noise variants for the evaluation.
+# Here we vary the noise mode and noise density.
 # -----------------------------
-kernel_variants = {
-    'gaussian': [
-         {'hsize': [15, 15], 'sigma': 1.0},  # default
-         {'hsize': [21, 21], 'sigma': 1.0},
-         {'hsize': [31, 31], 'sigma': 1.0},
-    ],
-    'disk': [
-         {'r': 5},   # smaller disk
-         {'r': 8},   # default
-         {'r': 12},  # larger disk
-    ],
-    'motion': [
-         {'len': 7, 'theta': 0.0},   # shorter motion blur
-         {'len': 9, 'theta': 0.0},   # default
-         {'len': 15, 'theta': 0.0},  # longer motion blur
-    ]
-}
+noise_variants = [
+    {'mode': 's&p', 'amount': 0.1},
+    {'mode': 's&p', 'amount': 0.2},
+    {'mode': 's&p', 'amount': 0.5},
+    {"mode": "gaussian", "mean": 0.0, "var": 0.005},
+    {"mode": "gaussian", "mean": 0.1, "var": 0.005},
+    {"mode": "gaussian", "mean": 0.2, "var": 0.005},
+    {"mode": "gaussian", "mean": 0.0, "var": 0.005},
+    {"mode": "gaussian", "mean": 0.0, "var": 0.01},
+    {"mode": "gaussian", "mean": 0.0, "var": 0.02}
+]
 
 # -----------------------------
 # Define the algorithms to be evaluated.
@@ -100,32 +90,35 @@ algorithms = {
 # Define a function to evaluate one combination.
 #
 # This function will:
-#  - Build the kernel with a given variant.
-#  - Blur the image using that kernel, with a fixed noise setting.
+#  - Build the fixed Gaussian kernel.
+#  - Blur the image using that kernel and the specified noise parameters.
 #  - Create the solver using the best hyperparameters.
 #  - Run the solver while recording the elapsed time.
 #  - Compute the normalized error.
 #
 # It returns a dictionary of results.
 # -----------------------------
-def run_evaluation(algo_name, algo_class, kernel_name, kernel_params):
-    # Generate the kernel using the corresponding kernel function and variant parameters.
-    k_func = kernel_funcs[kernel_name]
-    k = k_func(**kernel_params)
+def run_evaluation(algo_name, algo_class, noise_params):
     
-    # Create the blurred image (with salt & pepper noise at 10% density)
-    # b is the blurred image and true_image is the ground truth.
-    b, true_image = blur_image(image=img, kernel=k, noise_args={'mode': 's&p', 'amount': 0.1})
+    # Create the blurred image with the specified noise configuration.
+    b, true_image = blur_image(
+        image=img, 
+        kernel=KERNEL, 
+        noise_args=noise_params
+    )
     
     # Instantiate the solver with the best hyperparameters.
-    solver = algo_class(k=k, shape=(256, 256), 
-                        deblurring_objective=fixed_hps['deblurring_objective'], 
-                        maxiter=fixed_hps['maxiter'], 
-                        **best_hps[algo_name])
+    solver = algo_class(
+        k=KERNEL, 
+        shape=(256, 256), 
+        deblurring_objective=fixed_hps['deblurring_objective'], 
+        maxiter=fixed_hps['maxiter'], 
+        **best_hps[algo_name]
+    )
     
     # Measure the solving time.
     start = time.perf_counter()
-    out, loss_history = solver.solve(b, if_track=True)
+    out, loss_history = solver.solve(b, if_track=False)
     end = time.perf_counter()
     elapsed_time = end - start
     
@@ -135,8 +128,10 @@ def run_evaluation(algo_name, algo_class, kernel_name, kernel_params):
     # Return the collected metrics.
     return {
         'algorithm': algo_name,
-        'kernel': kernel_name,
-        'kernel_params': kernel_params,
+        'mode': noise_params['mode'],
+        'amount': noise_params.get('amount', 'N/A'),
+        'mean': noise_params.get('mean', 'N/A'),
+        'var': noise_params.get('var', 'N/A'),
         'time': elapsed_time,
         'error': error
     }
@@ -144,7 +139,7 @@ def run_evaluation(algo_name, algo_class, kernel_name, kernel_params):
 # -----------------------------
 # Run the evaluations in parallel.
 #
-# For every algorithm and every kernel variant, schedule a job.
+# For every algorithm and every noise configuration, schedule a job.
 # -----------------------------
 def main():
     results = []
@@ -152,11 +147,10 @@ def main():
     # Using ProcessPoolExecutor to run experiments in parallel.
     with ProcessPoolExecutor() as executor:
         for algo_name, algo_class in algorithms.items():
-            for kernel_name, variants in kernel_variants.items():
-                for params in variants:
-                    tasks.append(
-                        executor.submit(run_evaluation, algo_name, algo_class, kernel_name, params)
-                    )
+            for noise_params in noise_variants:
+                tasks.append(
+                    executor.submit(run_evaluation, algo_name, algo_class, noise_params)
+                )
         # Collect the results as they complete.
         for future in as_completed(tasks):
             try:

@@ -1,5 +1,4 @@
 import os
-import time
 import json
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -115,12 +114,8 @@ def run_evaluation(algo_name, algo_class, noise_params):
         maxiter=fixed_hps['maxiter'], 
         **best_hps[algo_name]
     )
-    
-    # Measure the solving time.
-    start = time.perf_counter()
+
     out, loss_history = solver.solve(b, if_track=False)
-    end = time.perf_counter()
-    elapsed_time = end - start
     
     # Compute the error normalized by the true image's 1-norm.
     error = np.linalg.norm((out - true_image) / imgnorm, ord=1)
@@ -132,7 +127,6 @@ def run_evaluation(algo_name, algo_class, noise_params):
         'amount': noise_params.get('amount', 'N/A'),
         'mean': noise_params.get('mean', 'N/A'),
         'var': noise_params.get('var', 'N/A'),
-        'time': elapsed_time,
         'error': error
     }
 

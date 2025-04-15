@@ -91,6 +91,7 @@ def objective(trial, algo_name, algo_class, noise_params, precomputed):
     }
     if algo_name == 'ChambollePock':
         params.update({"step_size2": trial.suggest_float('step_size2', 1e-2, 2.0)})
+        params.pop("relax")
     
     # Retrieve the precomputed blurred image and true image using the noise configuration key.
     noise_key = str(noise_params)

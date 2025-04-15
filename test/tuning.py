@@ -23,6 +23,9 @@ def objective(trial):
         "step_size": trial.suggest_float('step_size', 1e-5, 1e-1),
         "gamma": trial.suggest_float('gamma', 5e-2, 1.0)
     }
+    # if algo_name == 'ChambollePock':
+    #     params.update({"step_size2": trial.suggest_float('step_size2', 1e-2, 2.0)})
+    #     params.pop("relax")
 
     total_loss = 0
     img = images[0]

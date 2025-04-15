@@ -129,7 +129,7 @@ if __name__ == "__main__":
     
     # You can change hyperparameters here
     params = {"relax": 1.5, "step_size": 0.8, "gamma": 0.03}
-    params_champock = {"relax": 1.8, "step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
+    params_champock = {"step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
 
     dr_primal = DouglasRachfordPrimal(k=k, shape=shape, maxiter=100, deblurring_objective='l1',
                                    **params)

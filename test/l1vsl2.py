@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     # Parameters for the solvers (adjust as needed)
     default_params = {"relax": 1.5, "step_size": 0.8, "gamma": 0.03}
-    params_cp = {"relax": 1.8, "step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
+    params_champock = {"step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
 
     # Define the deblurring objectives to test.
     objectives = ['l1', 'l2']
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             if algo == "ChambollePock":
                 solver_instance = solver_classes[algo](k=k, shape=shape, maxiter=100,
                                                        deblurring_objective=obj,
-                                                       **params_cp)
+                                                       **params_champock)
             else:
                 solver_instance = solver_classes[algo](k=k, shape=shape, maxiter=100,
                                                        deblurring_objective=obj,

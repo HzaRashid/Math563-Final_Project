@@ -7,7 +7,6 @@ from .solvertemplate import SolverTemplate
 from typing import Tuple, List, Callable
 
 
-
 # kernels of the discrete gradient operator's components
 kernel_D1 = np.array([-1, 1])[:, None]
 kernel_D2 = np.array([-1, 1])[None, :]
@@ -23,7 +22,6 @@ class OptSolver:
                  shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
-                 relax: float = 0.5,
                  step_size: float = 0.1,
                  gamma: float = 0.1) -> None:
         """
@@ -46,7 +44,6 @@ class OptSolver:
                         'l2': 2
                         }.get(deblurring_objective, 'l1')
         self.maxiter = maxiter
-        self.relax = relax
         self.step_size = step_size
         self.gamma = gamma
         # prox operators used in all methods
@@ -114,9 +111,10 @@ class DouglasRachfordPrimal(OptSolver):
                  step_size: float = 0.1,
                  gamma: float = 0.1) -> None:
         super().__init__(k=k, shape=shape, deblurring_objective=deblurring_objective,
-                         maxiter=maxiter,relax=relax, step_size=step_size, gamma=gamma)
+                         maxiter=maxiter, step_size=step_size, gamma=gamma)
         # initialization
-        self.scaling = self.relax
+        # self.relax = relax
+        self.scaling = relax
         self.solver = construct_solver(self)
         
     def solve(self, 
@@ -160,11 +158,11 @@ class DouglasRachfordPrimalDual(OptSolver):
                  step_size: float = 0.1,
                  gamma: float = 0.1) -> None:
         super().__init__(k=k, shape=shape, deblurring_objective=deblurring_objective,
-                         maxiter=maxiter,relax=relax, step_size=step_size, gamma=gamma)
+                         maxiter=maxiter, step_size=step_size, gamma=gamma)
         
         # 1/t is used multiple times, just compute once
         self.t, self.trec = self.step_size, 1/self.step_size
-        self.scaling = self.relax
+        self.scaling = relax
         self.solver = construct_solver(self)
 
     # same as DRP in structure, different resolvents
@@ -213,9 +211,10 @@ class ADMM(OptSolver):
                  step_size: float = 0.1,
                  gamma: float = 0.1) -> None:
         super().__init__(k=k, shape=shape, deblurring_objective=deblurring_objective,
-                         maxiter=maxiter,relax=relax, step_size=step_size, gamma=gamma)
+                         maxiter=maxiter, step_size=step_size, gamma=gamma)
         # 1/t, 1-rho used multiple times, just compute once
         self.trec = 1/self.step_size 
+        self.relax = relax
         self.compress = 1 - self.relax
         self.scaling = self.step_size
         self.solver = construct_solver(self)
@@ -270,12 +269,11 @@ class ChambollePock(OptSolver):
                  shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
-                 relax: float = 0.5,
                  step_size: float = 0.1,
                  step_size2: float = 0.1,
                  gamma: float = 0.1) -> None:
         super().__init__(k=k, shape=shape, deblurring_objective=deblurring_objective,
-                         maxiter=maxiter,relax=relax, step_size=step_size, gamma=gamma)
+                         maxiter=maxiter, step_size=step_size, gamma=gamma)
         
         self.t, self.s = self.step_size, step_size2 # step sizes
         self.srec = 1/self.s # 1/s used multiple times, just compute once
@@ -314,8 +312,11 @@ if __name__ == "__main__":
     params = {'deblurring_objective': 'l2', 'maxiter': 2}
     k = np.array([1, 2, 3])[:, None]
     b = np.random.random((128, 128))
-    # solver = DouglasRachfordPrimal(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
-    # solver = DouglasRachfordPrimalDual(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
-    # solver = ADMM(k=np.array([1, 2, 3])[:, None], b=np.random.random((128, 128)), **params)
+    # solver = DouglasRachfordPrimal(k=np.array([1, 2, 3])[:, None], shape=(128,128), **params)
+    # solver.solve(b)
+    # solver = DouglasRachfordPrimalDual(k=np.array([1, 2, 3])[:, None], shape=(128,128), **params)
+    # solver.solve(b)
+    # solver = ADMM(k=np.array([1, 2, 3])[:, None], shape=(128,128), **params)
+    # solver.solve(b)
     solver = ChambollePock(k=k, shape=(128,128), **params)
     solver.solve(b)

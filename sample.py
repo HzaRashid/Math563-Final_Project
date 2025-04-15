@@ -29,16 +29,35 @@ b, x = blur_image(path_to_image=path_to_image,
                   noise_args=noise_args['s&p_noise']
                   )
    
-# You can change hyperparameters here
-params = {"relax": 1.5, "step_size": 0.8, "gamma": 0.03}
-params_champock = {"relax": 1.8, "step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
+# Our default hyperparameters are optimized hyperparameter for the default kernel and noise using the optuna package
+params_drp = {
+            "relax": 1.971031969842028,
+            "step_size": 0.3338244230304595,
+            "gamma": 0.03880489242481133
+        }
+params_drpd = {
+            "relax": 1.1780472793954466,
+            "step_size": 0.9879224190808178,
+            "gamma": 0.04411059218704158
+        }
+params_admm = {
+            "relax": 1.1390324895476753,
+            "step_size": 1.9544374002339948,
+            "gamma": 0.03960543951522183
+        }
+
+params_champock = {
+            "step_size": 0.8332046663820682,
+            "gamma": 0.03481857181257442,
+            "step_size2": 0.3858625337245462
+        }
 
 dr_primal = DouglasRachfordPrimal(k=k, shape=shape, maxiter=100, deblurring_objective='l1',
-                                **params)
+                                **params_drp)
 
-dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1',**params)
+dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1',**params_drpd)
 
-admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params)
+admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params_admm)
 
 cham_pock = ChambollePock(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params_champock)
 

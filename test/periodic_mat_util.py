@@ -35,7 +35,7 @@ def fft_conv2d(eigvals: np.ndarray, x: np.ndarray) -> np.ndarray:
 
 def cat_mats(mats: Sequence[np.ndarray]) -> np.ndarray:
     """
-    Concatenates a list of identically shaped matrices along a third dimension.
+    Concatenates identically shaped matrices along a third dimension.
 
     Args:
         mats (Sequence[np.ndarray]): Sequence of matrices (each an ndarray)

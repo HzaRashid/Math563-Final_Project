@@ -14,7 +14,7 @@ from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, Ch
 # Set up output directory and load the image
 # -----------------------------
 cur_dir = os.path.dirname(__file__)
-out_dir = os.path.join(cur_dir, 'Optuna_tuning_results')
+out_dir = os.path.join(cur_dir, 'best_noise_params')
 os.makedirs(out_dir, exist_ok=True)
 
 my_path = '../testimages/bright'

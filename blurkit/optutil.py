@@ -1,5 +1,5 @@
-import periodic_mat_util as mat
-import prox_util
+from . import periodic_mat_util as mat
+from . import prox_util
 import numpy as np
 
 

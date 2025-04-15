@@ -1,9 +1,9 @@
 import numpy as np
 from numpy.typing import NDArray
-import prox_util as prox
-import periodic_mat_util as mat
-from optutil import OptUtil
-from solvertemplate import SolverTemplate
+from .optutil import OptUtil
+from . import prox_util as prox
+from . import periodic_mat_util as mat
+from .solvertemplate import SolverTemplate
 from typing import Tuple, List, Callable
 
 

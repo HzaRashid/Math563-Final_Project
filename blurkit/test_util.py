@@ -1,10 +1,12 @@
 import os
 from skimage import util
-import preprocess_image as pci
+# import preprocess_image as pci
+from . import preprocess_image as pci
 import matplotlib.pyplot as plt
-import kernel
+from . import kernel
 import time
 from scipy.signal import convolve2d
+import numpy as np
 
 default_noise_args = {
     'mode':'s&p',
@@ -53,6 +55,44 @@ def blur_image(image=None,
 
     return Kx_plus_n, x
 
+
+def test_solver(solver, name, b, x):
+# This wrapper runs the chosen algorithm and shows:
+# the deblurred image and a graph for the objective value
+    res, eps = solver.solve(b, if_track=True, 
+                            stop_criterion=3.5e-3
+                            )
+    plt.subplot(2,3,1)
+    plt.imshow(x, cmap='gray')
+    plt.title("Orignal")
+    plt.axis('off')
+
+    plt.subplot(2,3,2)
+    plt.imshow(b, cmap='gray')
+    plt.title("Blurred")
+    plt.axis('off')
+    
+    plt.subplot(2,3,3)
+    plt.imshow(np.real(res), cmap='gray')
+    plt.title(name)
+    plt.axis('off')
+
+    plt.subplot(2,1,2)
+    plt.plot(eps)
+    plt.yscale("log")
+    plt.xlabel('Iteration')
+    plt.ylabel('Error')
+    plt.title('Convergence')
+    plt.grid(True)
+    plt.show()
+
+    start = time.time()
+    x0, eps = solver.solve(b)
+    end = time.time()
+    print(name, "time:", end-start)
+    print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
+    print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x)) 
+
     
 if __name__ == "__main__":
     cur_dir = os.path.dirname(__file__)
@@ -86,73 +126,17 @@ if __name__ == "__main__":
     from optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
     import numpy as np
 
-    def test_solver(solver, name, b):
-    # This wrapper runs the chosen algorithm and shows:
-    # the deblurred image and a graph for the objective value
-        res, eps = solver.solve(b, if_track=True, 
-                                stop_criterion=3.5e-3
-                                )
-        plt.subplot(2,3,1)
-        plt.imshow(x, cmap='gray')
-        plt.title("Orignal")
-        plt.axis('off')
-
-        plt.subplot(2,3,2)
-        plt.imshow(b, cmap='gray')
-        plt.title("Blurred")
-        plt.axis('off')
-        
-        plt.subplot(2,3,3)
-        plt.imshow(np.real(res), cmap='gray')
-        plt.title(name)
-        plt.axis('off')
-
-        plt.subplot(2,1,2)
-        plt.plot(eps)
-        plt.yscale("log")
-        plt.xlabel('Iteration')
-        plt.ylabel('Error')
-        plt.title('Convergence')
-        plt.grid(True)
-        plt.show()
-
-        start = time.time()
-        x0, eps = solver.solve(b)
-        end = time.time()
-        print(name, "time:", end-start)
-        print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
-        print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x))        
-
-    # Our default hyperparameters are optimized hyperparameter for the default kernel and noise using the optuna package
-    params_drp = {
-                "relax": 1.971031969842028,
-                "step_size": 0.3338244230304595,
-                "gamma": 0.03880489242481133
-            }
-    params_drpd = {
-                "relax": 1.1780472793954466,
-                "step_size": 0.9879224190808178,
-                "gamma": 0.04411059218704158
-            }
-    params_admm = {
-                "relax": 1.1390324895476753,
-                "step_size": 1.9544374002339948,
-                "gamma": 0.03960543951522183
-            }
     
-    params_champock = {
-                "relax": 1.0266874772150518,
-                "step_size": 0.8332046663820682,
-                "gamma": 0.03481857181257442,
-                "step_size2": 0.3858625337245462
-            }
+    # You can change hyperparameters here
+    params = {"relax": 1.5, "step_size": 0.8, "gamma": 0.03}
+    params_champock = {"relax": 1.8, "step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
 
     dr_primal = DouglasRachfordPrimal(k=k, shape=shape, maxiter=100, deblurring_objective='l1',
-                                   **params_drp)
+                                   **params)
 
-    dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1',**params_drpd)
+    dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1',**params)
 
-    admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params_admm)
+    admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params)
 
     cham_pock = ChambollePock(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params_champock)
     

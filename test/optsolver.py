@@ -1,19 +1,14 @@
 import numpy as np
+from numpy.typing import NDArray
 import prox_util as prox
 import periodic_mat_util as mat
 from optutil import OptUtil
 from solvertemplate import SolverTemplate
-from typing import Tuple, List
+from typing import Tuple, List, Callable
 
-def construct_solver(optsolver):
-    return SolverTemplate(
-        scaling=getattr(optsolver, 'scaling', None),
-        maxiter=getattr(optsolver, 'maxiter', None),
-        err_ord=getattr(optsolver, 'err_ord', None),
-        step_size=getattr(optsolver, 'step_size', None),
-        util=getattr(optsolver, 'util', None),
-    )
 
+
+# kernels of the discrete gradient operator's components
 kernel_D1 = np.array([-1, 1])[:, None]
 kernel_D2 = np.array([-1, 1])[None, :]
 
@@ -25,7 +20,7 @@ class OptSolver:
     """
     def __init__(self, 
                  k: np.ndarray, 
-                 shape: Tuple[int, int],
+                 shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
                  relax: float = 0.5,
@@ -82,11 +77,35 @@ class OptSolver:
        eps2 = np.sum(np.sqrt(np.abs(y[:,:,1])**2 + np.abs(y[:,:,2])**2))
        return (eps1 + self.gamma*eps2)/np.size(x)
     
+    def get_summary(self, eps: List[float], iter: int):
+        print(f'Algorithm completed with final objective: {eps[-1]}')
+        if iter < self.maxiter:
+            print(f'Early stopping was applied at {iter} iterations (maxiter was set to {self.maxiter})')
+    
+    def get_outputs(self, 
+                    solver: Callable[..., Tuple[NDArray, List[float], int]], 
+                    kwargs) -> Tuple[NDArray, List[float]]:
+        result, eps, iter = solver(**kwargs)
+        self.get_summary(eps, iter)
+        return result, eps
 
+
+# initialize states needed for core algorithm logic
+def construct_solver(optsolver: OptSolver) -> SolverTemplate:
+    return SolverTemplate(
+        scaling=getattr(optsolver, 'scaling', None),
+        maxiter=getattr(optsolver, 'maxiter', None),
+        err_ord=getattr(optsolver, 'err_ord', None),
+        step_size=getattr(optsolver, 'step_size', None),
+        util=getattr(optsolver, 'util', None)
+        )
+
+
+# --------* Primal Douglas-Rachford *--------
 class DouglasRachfordPrimal(OptSolver):
     def __init__(self,
                  k: np.ndarray, 
-                 shape: Tuple[int, int],
+                 shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
                  relax: float = 0.5,
@@ -98,12 +117,18 @@ class DouglasRachfordPrimal(OptSolver):
         self.scaling = self.relax
         self.solver = construct_solver(self)
         
-    def solve(self, b: np.ndarray, if_track: bool=False) -> Tuple[np.ndarray, List[float]]:
-        return self.solver.douglasrachford_main(b=b, 
-                                                resolvent_A=self.resolvent_A,
-                                                resolvent_B=self.resolvent_B,
-                                                if_track=if_track,
-                                                get_obj=self.get_objective)
+    def solve(self, 
+              b: np.ndarray, 
+              if_track: bool=False, 
+              stop_criterion: float = -1.0) -> Tuple[np.ndarray, List[float]]:
+        return self.get_outputs(solver=self.solver.douglasrachford_main, 
+                                kwargs={"b": b,
+                                        "resolvent_A": self.resolvent_A,
+                                        "resolvent_B": self.resolvent_B,
+                                        "if_track": if_track,
+                                        "get_obj": self.get_objective,
+                                        "stop_criterion": stop_criterion
+                                        })
 
     def resolvent_A(self, 
                     z1: np.ndarray, 
@@ -122,11 +147,11 @@ class DouglasRachfordPrimal(OptSolver):
         u = self.util.applyBig(x=2 * x - z1 + self.util.applyAT(2 * y - z2))
         return u, self.util.applyA(u)
     
-
+# --------* Primal Dual Douglas-Rachford *--------
 class DouglasRachfordPrimalDual(OptSolver):
     def __init__(self,
                  k: np.ndarray, 
-                 shape: Tuple[int, int],
+                 shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
                  relax: float = 0.5,
@@ -134,17 +159,25 @@ class DouglasRachfordPrimalDual(OptSolver):
                  gamma: float = 0.1) -> None:
         super().__init__(k=k, shape=shape, deblurring_objective=deblurring_objective,
                          maxiter=maxiter,relax=relax, step_size=step_size, gamma=gamma)
+        
         # 1/t is used multiple times, just compute once
         self.t, self.trec = self.step_size, 1/self.step_size
         self.scaling = self.relax
         self.solver = construct_solver(self)
+
     # same as DRP in structure, different resolvents
-    def solve(self, b: np.ndarray, if_track: bool=False) -> Tuple[np.ndarray, List[float]]: 
-        return self.solver.douglasrachford_main(b=b,
-                                                resolvent_A=self.resolvent_A,
-                                                resolvent_B=self.resolvent_B,
-                                                if_track=if_track,
-                                                get_obj=self.get_objective)
+    def solve(self, 
+              b: np.ndarray, 
+              if_track: bool=False, 
+              stop_criterion: float = -1.0) -> Tuple[np.ndarray, List[float]]: 
+        return self.get_outputs(solver=self.solver.douglasrachford_main, 
+                                kwargs={"b": b,
+                                        "resolvent_A": self.resolvent_A,
+                                        "resolvent_B": self.resolvent_B,
+                                        "if_track": if_track,
+                                        "get_obj": self.get_objective,
+                                        "stop_criterion": stop_criterion
+                                        })
     
     def resolvent_A(self, 
                     p: np.ndarray, 
@@ -165,12 +198,13 @@ class DouglasRachfordPrimalDual(OptSolver):
         combined = self.util.applyBig(2 * x - p - self.t * self.util.applyAT(zq), t=self.t)
         # [0,zq] + [I,tA] * combined
         return (combined, (zq + self.t * self.util.applyA(combined)))
- 
 
+
+# --------* ADMM *--------
 class ADMM(OptSolver):
     def __init__(self,
                  k: np.ndarray, 
-                 shape: Tuple[int, int],
+                 shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
                  relax: float = 0.5,
@@ -184,13 +218,19 @@ class ADMM(OptSolver):
         self.scaling = self.step_size
         self.solver = construct_solver(self)
 
-    def solve(self, b: np.ndarray, if_track: bool=False) -> Tuple[np.ndarray, List[float]]:
-        return self.solver.admm_main(b=b,
-                                     resolvent_A=self.resolvent_A,
-                                     resolvent_B=self.resolvent_B,
-                                     final_out=self.composite_op,
-                                     if_track=if_track,
-                                     get_obj=self.get_objective)
+    def solve(self, 
+              b: np.ndarray, 
+              if_track: bool=False, 
+              stop_criterion: float = -1.0) -> Tuple[np.ndarray, List[float]]:
+        return self.get_outputs(solver=self.solver.admm_main, 
+                                kwargs={"b": b,
+                                        "resolvent_A": self.resolvent_A,
+                                        "resolvent_B": self.resolvent_B,
+                                        "final_out": self.composite_op,
+                                        "if_track": if_track,
+                                        "get_obj": self.get_objective,
+                                        "stop_criterion": stop_criterion
+                                        })
     
     def composite_op(self, 
                      u: np.ndarray, 
@@ -219,12 +259,13 @@ class ADMM(OptSolver):
         Ax = self.util.applyA(x)
         return Ax, self.util.objective_prox(y=self.relax*Ax + self.compress*y + z1t, 
                                             b=b, t=self.trec, g=self.gamma)
-    
 
+
+# --------* Chambolle Pock *--------
 class ChambollePock(OptSolver):
     def __init__(self,
                  k: np.ndarray, 
-                 shape: Tuple[int, int],
+                 shape: Tuple[int, int] = (256, 256),
                  deblurring_objective: str = 'l1',
                  maxiter: int = 100,
                  relax: float = 0.5,
@@ -238,12 +279,18 @@ class ChambollePock(OptSolver):
         self.srec = 1/self.s # 1/s used multiple times, just compute once
         self.solver = construct_solver(self)
 
-    def  solve(self, b: np.ndarray, if_track: bool=False) -> Tuple[np.ndarray, List[float]]:
-        return self.solver.chambollepock_main(b=b,
-                                              prox_g_conj=self.prox_g_conj,
-                                              prox_f=self.prox_f,
-                                              if_track=if_track,
-                                              get_obj=self.get_objective)
+    def solve(self, 
+              b: np.ndarray, 
+              if_track: bool=False, 
+              stop_criterion: float = -1.0) -> Tuple[np.ndarray, List[float]]:
+        return self.get_outputs(solver=self.solver.chambollepock_main, 
+                                kwargs={"b": b,
+                                        "prox_g_conj": self.prox_g_conj,
+                                        "prox_f": self.prox_f,
+                                        "if_track": if_track,
+                                        "get_obj": self.get_objective,
+                                        "stop_criterion": stop_criterion
+                                        })
     
     def prox_g_conj(self, 
                     y: np.ndarray, 

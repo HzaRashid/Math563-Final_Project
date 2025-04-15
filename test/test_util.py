@@ -89,7 +89,9 @@ if __name__ == "__main__":
     def test_solver(solver, name, b):
     # This wrapper runs the chosen algorithm and shows:
     # the deblurred image and a graph for the objective value
-        res, eps = solver.solve(b, if_track=True)
+        res, eps = solver.solve(b, if_track=True, 
+                                stop_criterion=2e-3
+                                )
         plt.subplot(2,3,1)
         plt.imshow(x, cmap='gray')
         plt.title("Orignal")
@@ -112,46 +114,26 @@ if __name__ == "__main__":
         plt.title('Convergence')
         plt.grid(True)
         plt.show()
+
         start = time.time()
         x0, eps = solver.solve(b)
         end = time.time()
         print(name, "time:", end-start)
-        print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
-        print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x))        
+        print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.linalg.norm(x, ord=1))
+        print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.linalg.norm(x, ord=2))        
 
     # You can change hyperparameters here
-    best_hps = {
-    'DouglasRachfordPrimal': {
-            "relax": 1.8542801426300373,
-            "step_size": 0.5303865420997071,
-            "gamma": 0.037467313515114786
-        },
-    'DouglasRachfordPrimalDual':{
-            "relax": 1.549599094560696,
-            "step_size": 0.940056822261643,
-            "gamma": 0.02280159605226321
-        },
-    'ADMM':{
-            "relax": 1.160219522869758,
-            "step_size": 1.6288522037705238,
-            "gamma": 0.03851698444156989
-        },
-    'ChambollePock':{
-            "relax": 1.888640583759617,
-            "step_size": 0.36069547095563936,
-            "step_size2": 0.4993573208985405,
-            "gamma": 0.045716177124372946
-        }
-}
+    params = {"relax": 1.5, "step_size": 0.8, "gamma": 0.03}
+    params_champock = {"relax": 1.8, "step_size": 0.4, "step_size2": 0.4, "gamma": 0.03}
 
     dr_primal = DouglasRachfordPrimal(k=k, shape=shape, maxiter=100, deblurring_objective='l1',
-                                   **best_hps['DouglasRachfordPrimal'])
+                                   **params)
 
-    dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1',**best_hps['DouglasRachfordPrimalDual'])
+    dr_dual = DouglasRachfordPrimalDual(k=k, shape=shape, maxiter=100, deblurring_objective='l1',**params)
 
-    admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **best_hps['ADMM'])
+    admm = ADMM(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params)
 
-    cham_pock = ChambollePock(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **best_hps['ChambollePock'])
+    cham_pock = ChambollePock(k=k, shape=shape, maxiter=100, deblurring_objective='l1', **params_champock)
     
     test_solver(dr_primal, "Primal", b)
     test_solver(dr_dual, "Dual", b)

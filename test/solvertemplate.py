@@ -172,8 +172,6 @@ class SolverTemplate:
 
         return final_out(u, y, trec*w, trec*z), [*self.eps[:-1], get_obj(x,b,ord=self.err_ord)], self.stop_iter
     
-
-    
     def chambollepock_main(self, 
                            b: NDArray, 
                            prox_f: Callable[[NDArray, NDArray], NDArray],  

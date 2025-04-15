@@ -1,14 +1,16 @@
 
 import numpy as np
+from numpy.typing import NDArray
+from typing import Tuple
 from PIL import Image
 
 
-def image_to_numpy(image_mat):
+def image_to_numpy(image_mat: Image) -> NDArray:
     """
     Converts raw image to numpy array
 
     Args:
-        image_mat (list[list[float]]): raw image as 2D matrix (typically PIL format)
+        image_mat (PIL.Image): raw image as 2D matrix (typically PIL format)
 
     Returns:
         np array of image pixels
@@ -16,7 +18,7 @@ def image_to_numpy(image_mat):
     return np.array(image_mat)
 
 
-def normalize_image(image_mat):
+def normalize_image(image_mat: NDArray) -> NDArray:
     """
     Scales image pixels between 0 and 1 with min-max scaling:
 
@@ -36,7 +38,7 @@ def normalize_image(image_mat):
     return (image_mat - min_)/(image_mat.max() - min_)
 
 
-def rgb2gray(path_to_image, shape=(256,256)):
+def rgb2gray(path_to_image: str, shape: Tuple[int, int] = (256,256)) -> Image:
     """
     Converts RGB image to grayscale and saves it
 

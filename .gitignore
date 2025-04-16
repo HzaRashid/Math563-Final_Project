@@ -69,4 +69,7 @@ BrightDarkNoisy*
 *results
 *Results
 *params
+*heatmaps
+*KernelSizes
 foobar.py
+*apply_BDN*

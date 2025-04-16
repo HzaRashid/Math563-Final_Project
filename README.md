@@ -1,19 +1,23 @@
 # Math563 – Final Project
 ### To get started:
-In sample.py, change my_path to the path of the image to be tested. Then run sample.py.
-
-sample.py contains code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon.
+A working example is found in, ```sample.py```, containing code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon. Change ```my_path``` to the path of the desired image.
 
 ### blurkit
-The blurkit directory contains the finalized code. In it:
-optsolver.py contains the interface for the algorithms to be used by the user.
-optutil.py defines functions using some saved states that are frequently called by optsolver.
-solvertemplate.py implements the core logic of the algorithms, in a structure resembling pseudocode, and implements early stopping.
-kernel.py contains 3 kernels for blurring: Gaussian, motion, and disk.
-periodic_mat_util.py contains various Fourier transform methods, mainly based on the provided Matlab code.
-preprocess_image.py contains methods for converting and resizing the image into a matrix.
+The ```blurkit``` directory contains the finalized code.
+- ```optsolver.py```: Implements main wrapper class ```OptSolver``` for the algorithms, meant to be the interface for the user.
 
-The test directory contains an outdated version of our source code, along with some files for testing and hyperparameter tuning
+- ```optutil.py```: Implements a helper class for ```OptSolver```, abstracting away commonly used matrix operations. Mainly used for development purposes and readability.
+
+- ```solvertemplate.py```: Contains core algorithm logic, in a structure resembling pseudocode, and implements early stopping.
+
+- ```periodic_mat_util.py```: Various Fourier transform methods, mainly based on the provided Matlab code. Used by ```optutil.py```.
+
+- ```kernel.py```: Contains 3 kernels for blurring: Gaussian, motion, and disk.
+
+- ```preprocess_image.py``` contains methods for converting and resizing the image into a matrix.
+
+- ```./test```: Contains an outdated version of our source code, along with some files for testing and hyperparameter tuning
+
 
 ### sample usage
 ```python

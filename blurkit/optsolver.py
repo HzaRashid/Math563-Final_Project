@@ -78,6 +78,9 @@ class OptSolver:
        return (eps1 + self.gamma*eps2)/self.input_dim
     
     def get_summary(self, eps: List[float], iter: int, time_delta: float) -> None:
+        """
+        Prints final summary when algorithm completes.
+        """
         print(f"Algorithm Report: \
               \n  Final objective: {eps[-1]:.4f}  \
               \n  Elapsed time: {time_delta:.4f} seconds")
@@ -86,9 +89,14 @@ class OptSolver:
             print(f'  Early stopping -> True: {iter} iterations (maxiter was set to {self.maxiter})')
         else:
             print(f'  Early stopping -> False: reached maxiter {self.maxiter}')
+
     def get_outputs(self, 
                     solver: Callable[..., Tuple[NDArray, List[float], int]], 
                     kwargs) -> Tuple[NDArray, List[float]]:
+        """
+        Runs the algorithm (solver) with the 
+        specified key word arguments (kwargs).
+        """
         start_time = time.perf_counter()
         result, eps, iter = solver(**kwargs)
         end_time = time.perf_counter()

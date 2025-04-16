@@ -113,7 +113,6 @@ class DouglasRachfordPrimal(OptSolver):
         super().__init__(k=k, shape=shape, deblurring_objective=deblurring_objective,
                          maxiter=maxiter, step_size=step_size, gamma=gamma)
         # initialization
-        # self.relax = relax
         self.scaling = relax
         self.solver = construct_solver(self)
         

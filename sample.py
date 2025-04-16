@@ -1,7 +1,51 @@
 import os
+import time
+import numpy as np
 from blurkit import kernel
-from blurkit.test_util import blur_image, test_solver
+import matplotlib.pyplot as plt
+from blurkit.test_util import blur_image
+# you can use the below test_solver implementation and remove the one in this file
+# from blurkit.test_util import test_solver 
 from blurkit.optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
+
+def test_solver(solver, name, b, x):
+# This wrapper runs the chosen algorithm and shows:
+# the deblurred image and a graph for the objective value
+    """ SAMPLE USAGE """
+    res, eps = solver.solve(b, # blurred image
+                            if_track=True, # whether or not to track objective
+                            stop_criterion=3.5e-3 # halt algorithm and return when objective reaches this value
+                            )
+    plt.subplot(2,3,1)
+    plt.imshow(x, cmap='gray')
+    plt.title("Orignal")
+    plt.axis('off')
+
+    plt.subplot(2,3,2)
+    plt.imshow(b, cmap='gray')
+    plt.title("Blurred")
+    plt.axis('off')
+    
+    plt.subplot(2,3,3)
+    plt.imshow(np.real(res), cmap='gray')
+    plt.title(name)
+    plt.axis('off')
+
+    plt.subplot(2,1,2)
+    plt.plot(eps)
+    plt.yscale("log")
+    plt.xlabel('Iteration')
+    plt.ylabel('Error')
+    plt.title('Convergence')
+    plt.grid(True)
+    plt.show()
+
+    start = time.time()
+    x0, eps = solver.solve(b)
+    end = time.time()
+    print(name, "time:", end-start)
+    print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
+    print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x)) 
 
 cur_dir = os.path.dirname(__file__)
 my_path = './testimages/cameraman.jpg'

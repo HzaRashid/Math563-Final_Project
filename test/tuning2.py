@@ -8,16 +8,17 @@ import pandas as pd
 
 from preprocess_image import *         # custom preprocessing functions
 from test_util import blur_image         # function that blurs images
-from optsolver import ADMM
+from optsolver import DouglasRachfordPrimal
 from kernel import gaussian_kernel
 
 # Global configuration parameters
-KERNEL = gaussian_kernel()
+KERNEL = gaussian_kernel([15, 15], sigma=5)
 SHAPE = (256, 256)
 MAX_ITER = 100
 NOISE_ARGS={'mode': 's&p', 'amount': 0.1}
 DEBLOB = 'l1'
-SOLVER=ADMM
+SOLVER=DouglasRachfordPrimal
+
 
 # ------------------ Data Configuration & Loading ------------------
 cur_dir = os.path.dirname(__file__)
@@ -25,7 +26,7 @@ base_testimages_path = os.path.join(cur_dir, '../testimages')
 image_categories = ['bright', 'dark', 'noisy']
 
 # Create an output directory for the deblurred images and true images.
-output_base_dir = os.path.join(cur_dir, f'BrightDarkNoisy_{SOLVER.__name__}_Results')
+output_base_dir = os.path.join(cur_dir, f'BrightDarkNoisy_stdev5_L1_{SOLVER.__name__}_Results')
 os.makedirs(output_base_dir, exist_ok=True)
 
 def load_images(category_path):
@@ -61,11 +62,13 @@ def get_objective(blurred_pairs, one_norms):
     """
     def objective(trial):
         params = {
-            "relax": trial.suggest_float('relax', 1e-2, 2.0),  # rho
-            "step_size": trial.suggest_float('step_size', 1e-2, 2.0),  # t
-            # "step_size2": trial.suggest_float('step_size2', 1e-2, 2.0),  # s: Chambolle-Pock
+            "relax": trial.suggest_float('relax', 1e-2, 2.0),
+            "step_size": trial.suggest_float('step_size', 1e-2, 2.0),
             "gamma": trial.suggest_float('gamma', 1e-2, 0.5)
         }
+        if SOLVER.__name__ == 'ChambollePock':
+            params.update({"step_size2": trial.suggest_float('step_size2', 1e-2, 2.0)})
+            params.pop("relax")
         solver = SOLVER(
             k=KERNEL,
             shape=SHAPE,

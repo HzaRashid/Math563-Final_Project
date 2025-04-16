@@ -1,18 +1,17 @@
 import os
-import time
 import numpy as np
 from blurkit import kernel
 import matplotlib.pyplot as plt
 from blurkit.test_util import blur_image # blurs image
-# you can use the below test_solver implementation and remove the one in this file
-# from blurkit.test_util import test_solver 
 from blurkit.optsolver import DouglasRachfordPrimal, DouglasRachfordPrimalDual, ADMM, ChambollePock
 
 # --------* wrapper for algorithm evaluation *--------
 def test_solver(solver, name, b, x):
     """
     Runs the chosen algorithm and shows
-    the deblurred image and a graph for the objective value
+    the deblurred image and a graph for the objective value.
+
+    direct copy of 'test_solver' from blurkit.test_util
     """
     # --------* Sample usage (each algorithms's solve method has the same signature) *--------
     # res=recovered image, eps=list of objective values across iterations (if if_track==True)
@@ -49,8 +48,13 @@ def test_solver(solver, name, b, x):
 
     # x0=recovered image, eps=list[final objective value] when if_track==False (default)
     x0, eps = solver.solve(b) 
-    print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
-    print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x)) 
+    print(name, 
+          'average 1-norm difference from unblurred image:', 
+          np.linalg.norm(x-x0, ord=1)/np.size(x))
+    print(name, 
+          'average 2-norm difference from unblurred image:', 
+          np.linalg.norm(x-x0, ord=2)/np.size(x)) 
+    # we normalize by image size to get per-pixel error
 
 
 # --------* load image, change my_path accordingly *--------
@@ -82,9 +86,11 @@ b, x = blur_image(path_to_image=path_to_image,
                   kernel=k,
                   noise_args=noise_args['s&p_noise']
                   ) # blurs image with specified kernel and noise settings
+# we encourage the reader to look at our implementation of blur_image in blurkit/test_util.py
 
 # --------* Solver hyperparameters *--------
 # obtained with optuna for default Gaussian kernel and s&p noise
+# not expected to work as well under different settings
 params_drp = { # for Primal Douglas-Rachford
             "relax": 1.971031969842028,
             "step_size": 0.3338244230304595,

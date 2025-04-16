@@ -1,6 +1,8 @@
 # Math563 – Final Project
 ### To get started:
-See ```sample.py``` for a full working example; loads the image, applies blurring, and a implements a function for testing the algorithms. Change ```my_path``` to the path of the desired image.
+- See ```requirements.txt``` for dependencies.
+
+- See ```sample.py``` for a full working example; loads the image, applies blurring, and a implements a function for testing the algorithms. Change ```my_path``` to the path of the desired image.
 
 ### blurkit
 The ```blurkit``` directory contains the finalized code.
@@ -25,6 +27,7 @@ The ```blurkit``` directory contains the finalized code.
 
 ### Other
 - ```./test```: Contains an outdated version of our source code, along with some files for testing and hyperparameter tuning
+
 
 ### Sample Usage
 ```python

@@ -86,7 +86,7 @@ class OptSolver:
                     solver: Callable[..., Tuple[NDArray, List[float], int]], 
                     kwargs) -> Tuple[NDArray, List[float]]:
         result, eps, iter = solver(**kwargs)
-        self.get_summary(eps, iter)
+        # self.get_summary(eps, iter) dont use if tuning
         return result, eps
 
 

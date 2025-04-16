@@ -1,9 +1,10 @@
 # Math563 – Final Project
-To get started:
+### To get started:
 In sample.py, change my_path to the path of the image to be tested. Then run sample.py.
 
 sample.py contains code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon.
 
+### blurkit
 The blurkit directory contains the finalized code. In it:
 optsolver.py contains the interface for the algorithms to be used by the user.
 optutil.py defines functions using some saved states that are frequently called by optsolver.
@@ -14,7 +15,7 @@ preprocess_image.py contains methods for converting and resizing the image into 
 
 The test directory contains an outdated version of our source code, along with some files for testing and hyperparameter tuning
 
-
+### sample usage
 ```python
 # usage
 from blurkit.optsolver import ADMM
@@ -24,7 +25,7 @@ k = np.array([1, 2, 3])[:, None] # dummy kernel
 b = np.random.random((128, 128)) # dummy image
 
 params = {'deblurring_objective': 'l1', 'maxiter': 100}
-solver = ADMM(k=np.array([1, 2, 3])[:, None], shape=(128,128), **params)
+solver = ADMM(k=k, shape=(128,128), **params)
 solver.solve(b=b, # blurred image
              if_track=True, # whether or not to track objective
              stop_criterion=1e-1 # halt and return when objective reaches this value

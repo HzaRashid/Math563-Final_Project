@@ -56,7 +56,8 @@ class OptSolver:
             t=step_size,
             deblurring_prox=self.proxdbl)
         
-        self.input_dim = shape[0]**2
+        # flattened shape, normalizes the objective
+        self.input_dim = shape[0]**2 
         
     def get_objective(self, x: np.ndarray, b: np.ndarray, ord: int) -> float:
        """
@@ -77,14 +78,14 @@ class OptSolver:
        return (eps1 + self.gamma*eps2)/self.input_dim
     
     def get_summary(self, eps: List[float], iter: int, time_delta: float) -> None:
-        print(f"Algorithm completed. \
-              \n  final objective: {eps[-1]:.4f}  \
-              \n  elapsed time: {time_delta:.4f} seconds")
+        print(f"Algorithm Report: \
+              \n  Final objective: {eps[-1]:.4f}  \
+              \n  Elapsed time: {time_delta:.4f} seconds")
 
         if iter < self.maxiter:
-            print(f'Early stopping was applied \
-                  \n  at {iter} iterations (maxiter was set to {self.maxiter})')
-    
+            print(f'  Early stopping -> True: {iter} iterations (maxiter was set to {self.maxiter})')
+        else:
+            print(f'  Early stopping -> False: reached maxiter {self.maxiter}')
     def get_outputs(self, 
                     solver: Callable[..., Tuple[NDArray, List[float], int]], 
                     kwargs) -> Tuple[NDArray, List[float]]:

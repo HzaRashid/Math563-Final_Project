@@ -5,7 +5,7 @@ from . import prox_util as prox
 from . import periodic_mat_util as mat
 from .solvertemplate import SolverTemplate
 from typing import Tuple, List, Callable
-
+import time
 
 # kernels of the discrete gradient operator's components
 kernel_D1 = np.array([-1, 1])[:, None]
@@ -76,16 +76,22 @@ class OptSolver:
        eps2 = np.sum(np.sqrt(np.abs(y[:,:,1])**2 + np.abs(y[:,:,2])**2))
        return (eps1 + self.gamma*eps2)/self.input_dim
     
-    def get_summary(self, eps: List[float], iter: int):
-        print(f'Algorithm completed with final objective: {eps[-1]}')
+    def get_summary(self, eps: List[float], iter: int, time_delta: float) -> None:
+        print(f"Algorithm completed. \
+              \n  final objective: {eps[-1]:.4f}  \
+              \n  elapsed time: {time_delta:.4f} seconds")
+
         if iter < self.maxiter:
-            print(f'Early stopping was applied at {iter} iterations (maxiter was set to {self.maxiter})')
+            print(f'Early stopping was applied \
+                  \n  at {iter} iterations (maxiter was set to {self.maxiter})')
     
     def get_outputs(self, 
                     solver: Callable[..., Tuple[NDArray, List[float], int]], 
                     kwargs) -> Tuple[NDArray, List[float]]:
+        start_time = time.perf_counter()
         result, eps, iter = solver(**kwargs)
-        self.get_summary(eps, iter)
+        end_time = time.perf_counter()
+        self.get_summary(eps, iter, end_time-start_time)
         return result, eps
 
 

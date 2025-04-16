@@ -39,11 +39,8 @@ def test_solver(solver, name, b, x):
     plt.title('Convergence')
     plt.grid(True)
     plt.show()
-
-    start = time.time()
+    
     x0, eps = solver.solve(b)
-    end = time.time()
-    print(name, "time:", end-start)
     print(name, 'average 1-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=1)/np.size(x))
     print(name, 'average 2-norm difference from unblurred image:', np.linalg.norm(x-x0, ord=2)/np.size(x)) 
 

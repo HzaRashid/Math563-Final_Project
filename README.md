@@ -38,3 +38,6 @@ solver.solve(b=b, # blurred image
              stop_criterion=1e-1 # halt and return when objective reaches this value
             )
 ```
+
+### Tracking Loss
+If one wishes to track the objective, set the solver's ```solve``` method's key word argument ```if_track``` to ```True```, and use the list of objective values for downsteam analysis. See ```sample.py``` for details.

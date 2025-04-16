@@ -50,10 +50,11 @@ def box_prox(t, x):
         x (np.ndarray): vector
 
     Returns:
-        proximal operator of the t-scaled squared L2 distance t||y - b||^2 (np.ndarray).
+        proximal operator of the t-scaled indicator of 
+        {x, a finite dimenional vector: 0 <= x_i <= 1 for all dimenions i} (np.ndarray).
     
     """
-    return  np.where(x < 0, 0,  # 0 if x_ij = 0
+    return  np.where(x < 0, 0,  # 0 if x_ij < 0
             np.where(x > 1, 1,  # 1 if x_ij > 1
                      x          # x_ij, else
                      ))       

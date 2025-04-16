@@ -1,12 +1,12 @@
 # Math563 – Final Project
 ### To get started:
-A working example is found in, ```sample.py```, containing code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon. Change ```my_path``` to the path of the desired image.
+A working example is found in ```sample.py```, containing code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon. Change ```my_path``` to the path of the desired image.
 
 ### blurkit
 The ```blurkit``` directory contains the finalized code.
 - ```optsolver.py```: Implements main wrapper class ```OptSolver``` for the algorithms, meant to be the interface for the user.
 
-- ```optutil.py```: Implements a helper class for ```OptSolver```, abstracting away commonly used matrix operations. Mainly used for development purposes and readability.
+- ```optutil.py```: Implements a helper class, ```OptUtil```, for ```OptSolver```, abstracting away commonly used matrix operations. Mainly used for development purposes and readability.
 
 - ```solvertemplate.py```: Contains core algorithm logic, in a structure resembling pseudocode, and implements early stopping.
 
@@ -16,10 +16,11 @@ The ```blurkit``` directory contains the finalized code.
 
 - ```preprocess_image.py``` contains methods for converting and resizing the image into a matrix.
 
+### Other
 - ```./test```: Contains an outdated version of our source code, along with some files for testing and hyperparameter tuning
 
 
-### sample usage
+### Sample Usage
 ```python
 # usage
 from blurkit.optsolver import ADMM

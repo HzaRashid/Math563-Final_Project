@@ -6,7 +6,8 @@ A working example is found in ```sample.py```, containing code for importing the
 The ```blurkit``` directory contains the finalized code.
 - ```optsolver.py```: Implements main wrapper class ```OptSolver``` for the algorithms, meant to be the interface for the user.
 
-- ```optutil.py```: Implements a helper class, ```OptUtil```, for ```OptSolver```, abstracting away commonly used matrix operations. Mainly used for development purposes and readability.
+- ```optutil.py```: Implements a helper class, ```OptUtil```, for ```OptSolver```, abstracting commonly used matrix operations using the eigenvalues of the 2D DFTs
+    of the convolution kernel and the discrete gradient operator. 
 
 - ```solvertemplate.py```: Contains core algorithm logic, in a structure resembling pseudocode, and implements early stopping.
 

@@ -1,14 +1,15 @@
 # Math563 – Final Project
 To get started:
-In test_util.py, change my_path to the path of the image to be tested. Then run test_util.py.
+In sample.py, change my_path to the path of the image to be tested. Then run sample.py.
 
-test_util.py contains code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon.
+sample.py contains code for importing the image, applying the blurring method, and a wrapper function for running and testing the different algorithms for time and epsilon.
 
-Overview of the other files:
+The blurkit directory contains the finalized code. In it:
+optsolver.py contains the interface for the algorithms to be used by the user.
+optutil.py defines functions using some saved states that are frequently called by optsolver.
+solvertemplate.py implements the core logic of the algorithms, in a structure resembling pseudocode, and implements early stopping.
 kernel.py contains 3 kernels for blurring: Gaussian, motion, and disk.
-optsolver.py contains the classes for running the algorithms. The resolvents are implemented there.
-optutil.py contains methods for various matrix operations using Fourier transform, with the matrix's eigenvalues already cached.
-periodic_mat_util.py contains various Fourier transform methods.
+periodic_mat_util.py contains various Fourier transform methods, mainly based on the provided Matlab code.
 preprocess_image.py contains methods for converting and resizing the image into a matrix.
-prox_util.py contains the proximal operators.
-solvertemplate.py contains templates for the algorithms, which optsolver.py calls.
+
+The test directory contains an outdated version of our source code, along with some files for testing and hyperparameter tuning

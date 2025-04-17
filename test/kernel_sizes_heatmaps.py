@@ -1,63 +1,57 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import json
 import os
 
 # Load the JSON file containing the evaluation results
 cur_dir = os.path.dirname(__file__)
-data_path = os.path.join(cur_dir,  "apply_BDN_L1_KernelSizes", "evaluation_results.json")
+data_path = os.path.join(cur_dir, "KernelSizes_results", "evaluation_results_all_objectives.json")
 df = pd.read_json(data_path)
 
-out_dir = os.path.join(cur_dir, "kernelSize_heatmaps")
+out_dir = os.path.join(cur_dir, "kernelSize_heatmaps_by_objective")
 os.makedirs(out_dir, exist_ok=True)
 
-# Define a function to extract a numeric kernel size from the kernel_params dictionary.
+# Extract kernel‐size as before
 def extract_size(row):
-    kernel_type = row['kernel'].lower()
-    params = row['kernel_params']
-    if kernel_type == 'disk':
-        # For disk kernels, use the 'r' parameter.
-        return params.get('r', None)
-    elif kernel_type == 'gaussian':
-        # For gaussian, use the first entry of 'hsize' (assuming it is a square kernel)
-        hsize = params.get('hsize', None)
-        if isinstance(hsize, list) and hsize:
-            return hsize[0]
-    elif kernel_type == 'motion':
-        # For motion kernels, use the 'len' parameter.
-        return params.get('len', None)
+    kt = row['kernel'].lower()
+    p  = row['kernel_params']
+    if kt == 'disk':
+        return p.get('r')
+    if kt == 'gaussian':
+        h = p.get('hsize')
+        return h[0] if isinstance(h, list) and h else None
+    if kt == 'motion':
+        return p.get('len')
     return None
 
-# Apply the extraction function to create a new column "Size"
 df['Size'] = df.apply(extract_size, axis=1)
 
-# Define metrics to visualize
-metrics = ['time', 'error']
+# What to plot
+metrics = ['time', 'l1_rel_error', 'l2_rel_error']
 
-# Loop over each unique kernel type and generate heatmaps for each metric.
-for kernel in df['kernel'].unique():
-    # Filter for the current kernel type
-    df_kernel = df[df['kernel'] == kernel]
+# Loop over objectives
+for obj in df['objective'].unique():
+    df_obj = df[df['objective'] == obj]
+    obj_dir = os.path.join(out_dir, obj)
+    os.makedirs(obj_dir, exist_ok=True)
     
-    for metric in metrics:
-        # Create a pivot table with rows as algorithms and columns as kernel sizes,
-        # with the metric value as the cell content.
-        pivot_table = df_kernel.pivot(index='algorithm', columns='Size', values=metric)
-        # Sort columns for a more natural order of kernel sizes.
-        pivot_table = pivot_table.reindex(sorted(pivot_table.columns), axis=1)
-        
-        # Create the heatmap using seaborn
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(pivot_table, annot=True, fmt=".4f", cmap="viridis")
-        plt.title(f"{kernel.capitalize()} Kernel - {metric.capitalize()}")
-        plt.xlabel("Kernel Size")
-        plt.ylabel("Algorithm")
-        plt.tight_layout()
-        
-        # Save the generated heatmap to a file (e.g., disk_time_heatmap.png)
-        filename = f"{kernel.lower()}_{metric.lower()}_heatmap.pdf"
-        save_path = os.path.join(out_dir, filename)
-        plt.savefig(save_path)
-        print(f"Saved heatmap to {save_path}")
-        plt.close()
+    for kernel in df_obj['kernel'].unique():
+        df_k = df_obj[df_obj['kernel'] == kernel]
+        for metric in metrics:
+            pivot = df_k.pivot(index='algorithm', columns='Size', values=metric)
+            pivot = pivot.reindex(sorted(pivot.columns), axis=1)
+            
+            plt.figure(figsize=(8,6))
+            sns.heatmap(pivot, annot=True, fmt=".4f", cmap="viridis")
+            
+            # Title includes objective
+            title_metric = metric.replace('_',' ').title()
+            plt.title(f"{kernel.capitalize()} Kernel – {title_metric} ({obj.upper()} Objective)")
+            plt.xlabel("Kernel Size")
+            plt.ylabel("Algorithm")
+            plt.tight_layout()
+            
+            fname = f"{kernel.lower()}_{metric.lower()}_{obj.lower()}_heatmap.pdf"
+            plt.savefig(os.path.join(obj_dir, fname))
+            plt.close()
+            print(f"Saved {obj}–{metric} heatmap for {kernel} → {os.path.join(obj_dir, fname)}")
